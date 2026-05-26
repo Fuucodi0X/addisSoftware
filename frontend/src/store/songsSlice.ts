@@ -1,11 +1,14 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+export const SONG_GENRES = ["Ethio-jazz", "Pop", "Contemporary", "Soul", "Traditional"] as const;
+export type SongGenre = (typeof SONG_GENRES)[number];
+
 export interface Song {
   id: string;
   title: string;
   artist: string;
   album: string;
-  genre: string;
+  genre: SongGenre;
   artworkUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +51,14 @@ export interface SongQueryParams {
   page: number;
 }
 
+export interface SongMutationPayload {
+  title: string;
+  artist: string;
+  album: string;
+  genre: SongGenre;
+  artworkUrl: string | null;
+}
+
 interface SongsState {
   items: Song[];
   genres: string[];
@@ -58,6 +69,8 @@ interface SongsState {
   totalPages: number;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  mutationStatus: "idle" | "loading" | "succeeded" | "failed";
+  mutationError: string | null;
   stats: SongLibraryStats;
   statsStatus: "idle" | "loading" | "succeeded" | "failed";
   statsError: string | null;
@@ -77,6 +90,8 @@ const initialState: SongsState = {
   totalPages: 0,
   status: "idle",
   error: null,
+  mutationStatus: "idle",
+  mutationError: null,
   stats: {
     totals: {
       songs: 0,
@@ -118,6 +133,30 @@ const songsSlice = createSlice({
       state.status = "failed";
       state.error = action.payload;
     },
+    createSongRequested(state, _action: PayloadAction<SongMutationPayload>) {
+      state.mutationStatus = "loading";
+      state.mutationError = null;
+    },
+    updateSongRequested(state, _action: PayloadAction<{ id: string; song: SongMutationPayload }>) {
+      state.mutationStatus = "loading";
+      state.mutationError = null;
+    },
+    deleteSongRequested(state, _action: PayloadAction<{ id: string }>) {
+      state.mutationStatus = "loading";
+      state.mutationError = null;
+    },
+    songMutationSucceeded(state) {
+      state.mutationStatus = "succeeded";
+      state.mutationError = null;
+    },
+    songMutationFailed(state, action: PayloadAction<string>) {
+      state.mutationStatus = "failed";
+      state.mutationError = action.payload;
+    },
+    clearSongMutationState(state) {
+      state.mutationStatus = "idle";
+      state.mutationError = null;
+    },
     fetchStatsRequested(state) {
       state.statsStatus = "loading";
       state.statsError = null;
@@ -134,11 +173,17 @@ const songsSlice = createSlice({
 });
 
 export const {
+  clearSongMutationState,
+  createSongRequested,
+  deleteSongRequested,
   fetchSongsFailed,
   fetchSongsRequested,
   fetchSongsSucceeded,
   fetchStatsFailed,
   fetchStatsRequested,
-  fetchStatsSucceeded
+  fetchStatsSucceeded,
+  songMutationFailed,
+  songMutationSucceeded,
+  updateSongRequested
 } = songsSlice.actions;
 export const songsReducer = songsSlice.reducer;
