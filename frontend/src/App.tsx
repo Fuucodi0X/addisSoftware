@@ -1,4 +1,34 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { Global } from "@emotion/react";
+import styled from "@emotion/styled";
+import {
+  Activity,
+  AlertCircle,
+  Award,
+  BarChart2,
+  Check,
+  Disc,
+  Filter,
+  Heart,
+  Image,
+  Layers,
+  Music,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  Search,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Tag,
+  Trash2,
+  User,
+  Volume2,
+  X,
+  Edit,
+  Clock
+} from "lucide-react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   clearSongMutationState,
@@ -9,60 +39,53 @@ import {
   SONG_GENRES,
   updateSongRequested,
   type Song,
+  type SongLibraryStats,
   type SongMutationPayload
 } from "./store/songsSlice";
 import type { AppDispatch, RootState } from "./store/store";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const fallbackArtwork =
+  "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=240&auto=format&fit=crop&q=80";
 
-const placeholderPalettes = [
-  { background: "#244f3a", accent: "#f0c04a" },
-  { background: "#2b5876", accent: "#f7a072" },
-  { background: "#8f3f2f", accent: "#f5d7a1" },
-  { background: "#403d58", accent: "#9bd3ae" }
+const artworkPresets = [
+  fallbackArtwork,
+  "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=240&auto=format&fit=crop&q=80"
 ];
-
-const hashText = (value: string) =>
-  Array.from(value).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 997, 7);
-
-const getPlaceholder = (song: Song) => {
-  const seed = hashText(`${song.artist}-${song.album}-${song.title}`);
-  return {
-    palette: placeholderPalettes[seed % placeholderPalettes.length],
-    initials: song.artist
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("")
-  };
-};
 
 const emptySongForm = {
   title: "",
   artist: "",
   album: "",
   genre: "",
-  artworkUrl: ""
+  duration: "",
+  artworkUrl: artworkPresets[0]
 };
 
 type SongFormValues = typeof emptySongForm;
 type SongModalState = { mode: "create"; song?: undefined } | { mode: "edit"; song: Song };
+type AppTab = "home" | "stats";
 
 const songFieldLimits = {
   title: 120,
   artist: 120,
   album: 120,
   genre: 80,
+  duration: 5,
   artworkUrl: 2048
 };
+
+const durationPattern = /^\d{1,2}:[0-5]\d$/;
 
 const getSongFormValues = (song?: Song): SongFormValues => ({
   title: song?.title ?? "",
   artist: song?.artist ?? "",
   album: song?.album ?? "",
   genre: song?.genre ?? "",
-  artworkUrl: song?.artworkUrl ?? ""
+  duration: song?.duration ?? "",
+  artworkUrl: song?.artworkUrl ?? artworkPresets[0]
 });
 
 const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload; errors?: string[] } => {
@@ -71,11 +94,12 @@ const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload
     artist: values.artist.trim(),
     album: values.album.trim(),
     genre: values.genre.trim(),
+    duration: values.duration.trim(),
     artworkUrl: values.artworkUrl.trim()
   };
   const errors: string[] = [];
 
-  for (const field of ["title", "artist", "album", "genre"] as const) {
+  for (const field of ["title", "artist", "album", "genre", "duration"] as const) {
     if (!trimmed[field]) {
       errors.push(`${field} is required.`);
     } else if (trimmed[field].length > songFieldLimits[field]) {
@@ -89,15 +113,15 @@ const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload
     errors.push(`genre must be one of: ${SONG_GENRES.join(", ")}.`);
   }
 
+  if (trimmed.duration && !durationPattern.test(trimmed.duration)) {
+    errors.push("duration must use M:SS or MM:SS format.");
+  }
+
   if (trimmed.artworkUrl.length > songFieldLimits.artworkUrl) {
     errors.push(`artworkUrl must be ${songFieldLimits.artworkUrl} characters or fewer.`);
   }
 
-  if (!genre) {
-    return { errors };
-  }
-
-  if (errors.length > 0) {
+  if (!genre || errors.length > 0) {
     return { errors };
   }
 
@@ -107,17 +131,60 @@ const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload
       artist: trimmed.artist,
       album: trimmed.album,
       genre,
+      duration: trimmed.duration,
       artworkUrl: trimmed.artworkUrl || null
     }
   };
 };
 
+const parseDuration = (duration: string) => {
+  const [minutes = "0", seconds = "0"] = duration.split(":");
+  return Number.parseInt(minutes, 10) * 60 + Number.parseInt(seconds, 10);
+};
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
+};
+
+const getStatsAdapters = (stats: SongLibraryStats) => {
+  const genreEntries = stats.songsByGenre.map((item) => [item.genre, item.songs] as const);
+  const albumEntries = stats.songsByAlbum.map((item) => [item.album, item.songs] as const);
+  const topArtist = stats.artists[0] ?? null;
+  const topGenre = stats.songsByGenre[0] ?? null;
+
+  return {
+    albumEntries,
+    averageAlbumsPerArtist:
+      stats.totals.artists > 0 ? (stats.totals.albums / stats.totals.artists).toFixed(1) : "0",
+    averageSongsPerAlbum:
+      stats.totals.albums > 0 ? (stats.totals.songs / stats.totals.albums).toFixed(1) : "0",
+    averageSongsPerArtist:
+      stats.totals.artists > 0 ? (stats.totals.songs / stats.totals.artists).toFixed(1) : "0",
+    genreEntries,
+    maxAlbumSongs: Math.max(1, ...stats.songsByAlbum.map((item) => item.songs)),
+    topArtist,
+    topGenre
+  };
+};
+
 export const App = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [activeTab, setActiveTab] = useState<AppTab>("home");
   const [songModal, setSongModal] = useState<SongModalState | null>(null);
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<SongFormValues>(emptySongForm);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
   const {
     error,
     genres,
@@ -134,19 +201,22 @@ export const App = () => {
     totalItems,
     totalPages
   } = useSelector((state: RootState) => state.songs);
-  const isFiltered = Boolean(query.q.trim() || query.genre.trim());
-  const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
-  const endItem = Math.min(page * limit, totalItems);
-  const canGoBack = page > 1 && status !== "loading";
-  const canGoForward = page < totalPages && status !== "loading";
-  const maxGenreSongs = Math.max(...stats.songsByGenre.map((item) => item.songs), 1);
+
   const isMutating = mutationStatus === "loading";
-  const modalTitle = songModal?.mode === "edit" ? "Edit Song" : "Add Song";
-  const modalActionLabel = songModal?.mode === "edit" ? "Save changes" : "Add Song";
+  const isFiltered = Boolean(query.q.trim() || query.genre.trim());
+  const activeSong = useMemo(
+    () => items.find((song) => song.id === selectedSongId) ?? items[0] ?? null,
+    [items, selectedSongId]
+  );
+  const statsView = useMemo(() => getStatsAdapters(stats), [stats]);
+  const formTitle = songModal?.mode === "edit" ? "Edit Song Metadata" : "Add Song to Catalog";
+  const actionLabel = songModal?.mode === "edit" ? "Update Record" : "Save Song";
   const modalErrors = useMemo(
     () => (mutationError ? [...formErrors, mutationError] : formErrors),
     [formErrors, mutationError]
   );
+  const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
+  const endItem = Math.min(page * limit, totalItems);
 
   useEffect(() => {
     dispatch(fetchSongsRequested());
@@ -163,36 +233,80 @@ export const App = () => {
     }
   }, [dispatch, mutationStatus]);
 
-  const shellStats = [
-    { label: "Songs", value: String(stats.totals.songs) },
-    { label: "Artists", value: String(stats.totals.artists) },
-    { label: "Albums", value: String(stats.totals.albums) },
-    { label: "Genres", value: String(stats.totals.genres) }
-  ];
+  useEffect(() => {
+    setPlaybackTime(0);
+  }, [activeSong?.id]);
 
-  const handleSearchChange = (value: string) => {
-    dispatch(fetchSongsRequested({ q: value, page: 1 }));
+  useEffect(() => {
+    if (!activeSong || !isPlaying) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setPlaybackTime((current) => {
+        const maxSeconds = Math.max(1, parseDuration(activeSong.duration));
+
+        if (current >= maxSeconds) {
+          if (isRepeat) {
+            return 0;
+          }
+
+          const currentIndex = items.findIndex((song) => song.id === activeSong.id);
+          const nextSong = items[currentIndex + 1] ?? items[0];
+
+          if (nextSong) {
+            setSelectedSongId(nextSong.id);
+          }
+
+          return 0;
+        }
+
+        return current + 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [activeSong, isPlaying, isRepeat, items]);
+
+  const selectSong = (song: Song) => {
+    setSelectedSongId(song.id);
+    setIsPlaying(true);
   };
 
-  const handleGenreChange = (value: string) => {
-    dispatch(fetchSongsRequested({ genre: value, page: 1 }));
+  const selectAdjacentSong = (direction: 1 | -1) => {
+    if (items.length === 0) {
+      return;
+    }
+
+    if (isShuffle) {
+      const nextIndex = Math.floor(Math.random() * items.length);
+      setSelectedSongId(items[nextIndex].id);
+      setPlaybackTime(0);
+      return;
+    }
+
+    const currentIndex = activeSong ? items.findIndex((song) => song.id === activeSong.id) : 0;
+    const nextIndex = (currentIndex + direction + items.length) % items.length;
+    setSelectedSongId(items[nextIndex].id);
+    setPlaybackTime(0);
   };
 
-  const handlePageChange = (nextPage: number) => {
-    dispatch(fetchSongsRequested({ page: nextPage }));
+  const goHome = () => {
+    setActiveTab("home");
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openCreateModal = () => {
     dispatch(clearSongMutationState());
+    setFormValues({ ...emptySongForm, artworkUrl: artworkPresets[Math.floor(Math.random() * artworkPresets.length)] });
     setFormErrors([]);
-    setFormValues(emptySongForm);
     setSongModal({ mode: "create" });
   };
 
   const openEditModal = (song: Song) => {
     dispatch(clearSongMutationState());
-    setFormErrors([]);
     setFormValues(getSongFormValues(song));
+    setFormErrors([]);
     setSongModal({ mode: "edit", song });
   };
 
@@ -207,25 +321,7 @@ export const App = () => {
     setFormErrors([]);
   };
 
-  const openDeleteModal = (song: Song) => {
-    dispatch(clearSongMutationState());
-    setSongToDelete(song);
-  };
-
-  const closeDeleteModal = () => {
-    if (isMutating) {
-      return;
-    }
-
-    dispatch(clearSongMutationState());
-    setSongToDelete(null);
-  };
-
-  const handleFormChange = (field: keyof SongFormValues, value: string) => {
-    setFormValues((current) => ({ ...current, [field]: value }));
-  };
-
-  const handleSongSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const submitSong = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!songModal) {
@@ -249,345 +345,2437 @@ export const App = () => {
     dispatch(createSongRequested(result.payload));
   };
 
-  const handleDeleteConfirm = () => {
-    if (songToDelete) {
-      dispatch(deleteSongRequested({ id: songToDelete.id }));
+  const confirmDelete = () => {
+    if (!songToDelete) {
+      return;
     }
+
+    if (songToDelete.id === selectedSongId) {
+      setSelectedSongId(null);
+      setIsPlaying(false);
+    }
+
+    dispatch(deleteSongRequested({ id: songToDelete.id }));
   };
 
+  const handleSearchChange = (value: string) => {
+    dispatch(fetchSongsRequested({ q: value, page: 1 }));
+  };
+
+  const handleGenreChange = (genre: string) => {
+    dispatch(fetchSongsRequested({ genre: genre === "All" ? "" : genre, page: 1 }));
+  };
+
+  const pageNumbers = Array.from({ length: Math.max(totalPages, 1) }, (_, index) => index + 1);
+  const emptyRows = Math.max(0, 5 - items.length);
+  const durationSeconds = activeSong ? Math.max(1, parseDuration(activeSong.duration)) : 1;
+  const progressWidth = Math.min(100, (playbackTime / durationSeconds) * 100);
+
   return (
-    <main className="app-shell">
-      <section className="hero" aria-labelledby="page-title">
-        <div className="hero-copy">
-          <p className="eyebrow">Catalogue workspace</p>
-          <h1 id="page-title">Song Library</h1>
-          <p className="lede">
-            A focused MERN shell for managing Song records, catalogue filters, and aggregate statistics.
-          </p>
-        </div>
+    <>
+      <Global
+        styles={{
+          "*, *::before, *::after": { boxSizing: "border-box" },
+          "html, body, #root": { minHeight: "100%" },
+          "html, body": { overflowX: "hidden" },
+          body: {
+            margin: 0,
+            minWidth: 320,
+            background: "#f4f4f5",
+            color: "#27272a",
+            fontFamily: '"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          },
+          "button, input, select": { font: "inherit" },
+          button: { cursor: "pointer" },
+          "*": { scrollbarWidth: "none" },
+          "*::-webkit-scrollbar": { display: "none" }
+        }}
+      />
+      <Shell>
+        <AppFrame id="lunio-app-shell">
+          <Sidebar id="sidebar-panel" aria-label="Primary">
+            <BrandButton id="sidebar-home-btn" type="button" aria-label="Show home page" onClick={goHome}>
+              <span />
+              <span />
+              <span />
+            </BrandButton>
+            <SidebarSpacer aria-hidden="true" />
+          </Sidebar>
 
-        <div className="service-panel" aria-label="Service status">
-          <span className="status-pill">Frontend online</span>
-          <dl>
-            <div>
-              <dt>API root</dt>
-              <dd>{apiBaseUrl}</dd>
-            </div>
-            <div>
-              <dt>Health</dt>
-              <dd>/health</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section className="workspace" aria-label="Song Library overview">
-        <div className="stat-grid">
-          {shellStats.map((stat) => (
-            <article className="stat-card" key={stat.label}>
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </article>
-          ))}
-        </div>
-
-        <section className="stats-dashboard" aria-labelledby="stats-title">
-          <div className="stats-heading">
-            <div>
-              <p className="eyebrow">Global statistics</p>
-              <h2 id="stats-title">Library dashboard</h2>
-            </div>
-            <span className="scope-pill">All Songs</span>
-          </div>
-
-          {statsStatus === "loading" ? (
-            <p className="stats-message" role="status">
-              Loading Song Library statistics
-            </p>
-          ) : null}
-
-          {statsStatus === "failed" ? <p className="stats-message error-state">{statsError}</p> : null}
-
-          {statsStatus !== "failed" ? (
-            <div className="stats-panels">
-              <section className="breakdown-panel" aria-labelledby="genre-breakdown-title">
-                <h3 id="genre-breakdown-title">Songs by Genre</h3>
-                <div className="bar-list">
-                  {stats.songsByGenre.length === 0 ? (
-                    <p className="empty-stat">No genre statistics yet.</p>
-                  ) : null}
-                  {stats.songsByGenre.map((item) => (
-                    <div className="bar-row" key={item.genre}>
-                      <span>{item.genre}</span>
-                      <div className="bar-track" aria-hidden="true">
-                        <span style={{ width: `${Math.max((item.songs / maxGenreSongs) * 100, 6)}%` }} />
-                      </div>
-                      <strong>{item.songs}</strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="breakdown-panel" aria-labelledby="artist-breakdown-title">
-                <h3 id="artist-breakdown-title">Artists</h3>
-                <div className="compact-list">
-                  {stats.artists.length === 0 ? <p className="empty-stat">No artist statistics yet.</p> : null}
-                  {stats.artists.slice(0, 6).map((item) => (
-                    <div className="compact-row" key={item.artist}>
-                      <span>{item.artist}</span>
-                      <strong>
-                        {item.songs} Songs / {item.albums} Albums
-                      </strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="breakdown-panel" aria-labelledby="album-breakdown-title">
-                <h3 id="album-breakdown-title">Songs by Album</h3>
-                <div className="compact-list">
-                  {stats.songsByAlbum.length === 0 ? (
-                    <p className="empty-stat">No album statistics yet.</p>
-                  ) : null}
-                  {stats.songsByAlbum.slice(0, 6).map((item) => (
-                    <div className="compact-row" key={item.album}>
-                      <span>{item.album}</span>
-                      <strong>{item.songs} Songs</strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          ) : null}
-        </section>
-
-        <div className="queue">
-          <div className="catalog-heading">
-            <div>
-              <p className="eyebrow">Catalog controls</p>
-              <h2>Song catalogue</h2>
-            </div>
-            <div className="catalog-actions">
-              <p className="result-count" aria-live="polite">
-                {totalItems === 0 ? "No results" : `${startItem}-${endItem} of ${totalItems}`}
-              </p>
-              <button className="primary-action" type="button" onClick={openCreateModal}>
-                Add Song
-              </button>
-            </div>
-          </div>
-
-          <div className="catalog-controls" aria-label="Song catalog filters">
-            <label>
-              <span>Search</span>
-              <input
-                type="search"
-                value={query.q}
-                onChange={(event) => handleSearchChange(event.target.value)}
-                placeholder="Title, artist, album, genre"
-              />
-            </label>
-            <label>
-              <span>Genre</span>
-              <select value={query.genre} onChange={(event) => handleGenreChange(event.target.value)}>
-                <option value="">All genres</option>
-                {genres.map((genre) => (
-                  <option value={genre} key={genre}>
-                    {genre}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="song-table" role="table" aria-label="Persisted Songs">
-            <div className="song-row song-row-header" role="row">
-              <span role="columnheader">Song</span>
-              <span role="columnheader">Artist</span>
-              <span role="columnheader">Album</span>
-              <span role="columnheader">Genre</span>
-              <span role="columnheader">Actions</span>
-            </div>
-
-            {status === "loading" ? (
-              <div className="table-message" role="status">
-                Loading Songs
-              </div>
-            ) : null}
-
-            {status === "failed" ? <div className="table-message error-state">{error}</div> : null}
-
-            {status === "succeeded" && items.length === 0 ? (
-              <div className="table-message">
-                {isFiltered
-                  ? "No Songs match the current search and genre filters."
-                  : "No Songs have been seeded yet."}
-              </div>
-            ) : null}
-
-            {items.map((song) => {
-              const placeholder = getPlaceholder(song);
-
-              return (
-                <article className="song-row" role="row" key={song.id}>
-                  <div className="song-cell title-cell" role="cell">
-                    {song.artworkUrl ? (
-                      <img className="artwork" src={song.artworkUrl} alt={`${song.album} artwork`} />
-                    ) : (
-                      <span
-                        className="artwork placeholder-artwork"
-                        style={{
-                          backgroundColor: placeholder.palette.background,
-                          color: placeholder.palette.accent
-                        }}
-                        aria-hidden="true"
-                      >
-                        {placeholder.initials}
-                      </span>
-                    )}
-                    <strong>{song.title}</strong>
+          <MainPanel id="main-content-panel">
+            <ScrollPanel id="main-scroll-view" ref={scrollRef}>
+              {status === "loading" && items.length === 0 ? (
+                <LoadingBlock>
+                  <Spinner />
+                  <p>Retrieving Song Library records...</p>
+                </LoadingBlock>
+              ) : error ? (
+                <ErrorBanner>
+                  <AlertCircle size={20} />
+                  <div>
+                    <strong>Connection Error</strong>
+                    <p>{error}</p>
+                    <button type="button" onClick={() => dispatch(fetchSongsRequested())}>
+                      Re-fetch catalog
+                    </button>
                   </div>
-                  <span role="cell">{song.artist}</span>
-                  <span role="cell">{song.album}</span>
-                  <span role="cell">{song.genre}</span>
-                  <span className="row-actions" role="cell">
-                    <button type="button" onClick={() => openEditModal(song)}>
-                      Edit
-                    </button>
-                    <button className="danger-ghost" type="button" onClick={() => openDeleteModal(song)}>
-                      Delete
-                    </button>
-                  </span>
-                </article>
-              );
-            })}
-          </div>
+                </ErrorBanner>
+              ) : activeTab === "stats" ? (
+                <StatsDashboard
+                  adapters={statsView}
+                  error={statsError}
+                  stats={stats}
+                  status={statsStatus}
+                  onBack={goHome}
+                />
+              ) : (
+                <HomeView>
+                  <TopGrid>
+                    <HeroCard>
+                      <Kicker>
+                        <span />
+                        Curated Song Library
+                      </Kicker>
+                      <HeroCopy>
+                        <h1>Song Library</h1>
+                        <p>
+                          Your premium interface for managing Song metadata, catalogue statistics, artwork, and
+                          duration records.
+                        </p>
+                      </HeroCopy>
+                      <HeroActions>
+                        <PrimaryAction type="button" onClick={() => activeSong && selectSong(activeSong)}>
+                          <Play size={14} fill="currentColor" /> Select Featured Song
+                        </PrimaryAction>
+                      </HeroActions>
+                      <HeroImage
+                        src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=520&auto=format&fit=crop&q=80"
+                        alt=""
+                        referrerPolicy="no-referrer"
+                      />
+                    </HeroCard>
 
-          <div className="pagination" aria-label="Song catalog pagination">
-            <button type="button" onClick={() => handlePageChange(page - 1)} disabled={!canGoBack}>
-              Previous
-            </button>
-            <span>
-              Page {Math.max(page, 1)} of {Math.max(totalPages, 1)}
-            </span>
-            <button type="button" onClick={() => handlePageChange(page + 1)} disabled={!canGoForward}>
-              Next
-            </button>
-          </div>
-        </div>
-      </section>
+                    <ArtistPanel>
+                      <PanelHeader>
+                        <PanelTitle>
+                          <Award size={16} />
+                          In-Catalog Artists
+                        </PanelTitle>
+                        <TextButton id="switch-stats-btn" type="button" onClick={() => setActiveTab("stats")}>
+                          See More Analytics &gt;
+                        </TextButton>
+                      </PanelHeader>
+                      <ArtistList>
+                        {stats.artists.length > 0 ? (
+                          stats.artists.slice(0, 4).map((artist, index) => (
+                            <ArtistRow key={artist.artist}>
+                              <Avatar $tone={index}>{artist.artist.charAt(0).toUpperCase()}</Avatar>
+                              <div>
+                                <strong>{artist.artist}</strong>
+                                <span>
+                                  {artist.albums} album record{artist.albums === 1 ? "" : "s"}
+                                </span>
+                              </div>
+                              <CountPill>
+                                {artist.songs} Song{artist.songs === 1 ? "" : "s"}
+                              </CountPill>
+                            </ArtistRow>
+                          ))
+                        ) : (
+                          <EmptyText>No artists index populated yet.</EmptyText>
+                        )}
+                      </ArtistList>
+                    </ArtistPanel>
+                  </TopGrid>
+
+                  <CatalogCard>
+                    <CatalogHeader>
+                      <div>
+                        <h2>Song Catalog</h2>
+                        <span>
+                          Telemetry: {startItem}-{endItem} of {totalItems} indexed Songs
+                        </span>
+                      </div>
+                      <Controls>
+                        <SearchShell>
+                          <Search size={15} />
+                          <input
+                            id="catalog-search-input"
+                            type="search"
+                            value={query.q}
+                            onChange={(event) => handleSearchChange(event.target.value)}
+                            placeholder="Search Songs..."
+                          />
+                        </SearchShell>
+                        <Divider />
+                        <GenreControls>
+                          <Filter size={15} />
+                          <strong>Genres:</strong>
+                          <GenreScroller>
+                            {["All", ...genres].slice(0, 6).map((genre) => (
+                              <GenreButton
+                                id={`filter-genre-pill-${genre}`}
+                                key={genre}
+                                type="button"
+                                $active={(genre === "All" && !query.genre) || query.genre === genre}
+                                onClick={() => handleGenreChange(genre)}
+                              >
+                                {genre}
+                              </GenreButton>
+                            ))}
+                          </GenreScroller>
+                        </GenreControls>
+                      </Controls>
+                    </CatalogHeader>
+
+                    <TableShell>
+                      <SongTable aria-label="Song Catalog">
+                        <thead>
+                          <tr>
+                            <th># Title</th>
+                            <th>Artist Name</th>
+                            <th>Genre Category</th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.length === 0 ? (
+                            <tr>
+                              <td colSpan={5}>
+                                <EmptyTableText>
+                                  {isFiltered
+                                    ? "No Songs match your query in this scope."
+                                    : "No Songs have been added yet."}
+                                </EmptyTableText>
+                              </td>
+                            </tr>
+                          ) : (
+                            items.map((song, index) => {
+                              const isSelected = activeSong?.id === song.id;
+
+                              return (
+                                <SongRow key={song.id} $selected={isSelected} onClick={() => selectSong(song)}>
+                                  <td>
+                                    <TitleCell>
+                                      <IndexCell>
+                                        {isSelected && isPlaying ? (
+                                          <Equalizer aria-label="Selected Song">
+                                            <span />
+                                            <span />
+                                            <span />
+                                          </Equalizer>
+                                        ) : (
+                                          (page - 1) * limit + index + 1
+                                        )}
+                                      </IndexCell>
+                                      <Artwork
+                                        src={song.artworkUrl ?? fallbackArtwork}
+                                        alt={`${song.album} artwork`}
+                                        referrerPolicy="no-referrer"
+                                      />
+                                      <TitleText>
+                                        <strong>{song.title}</strong>
+                                        <span>{song.album}</span>
+                                      </TitleText>
+                                    </TitleCell>
+                                  </td>
+                                  <td>{song.artist}</td>
+                                  <td>
+                                    <GenreLabel>{song.genre}</GenreLabel>
+                                  </td>
+                                  <td>
+                                    <DurationText>{song.duration}</DurationText>
+                                  </td>
+                                  <td onClick={(event) => event.stopPropagation()}>
+                                    <RowActions>
+                                      <IconTextButton
+                                        id={`edit-song-btn-${song.id}`}
+                                        type="button"
+                                        title="Edit Song"
+                                        onClick={() => openEditModal(song)}
+                                      >
+                                        <Edit size={15} />
+                                        <span>Edit</span>
+                                      </IconTextButton>
+                                      <IconTextButton
+                                        id={`del-song-btn-${song.id}`}
+                                        type="button"
+                                        title="Delete Song"
+                                        $danger
+                                        onClick={() => setSongToDelete(song)}
+                                      >
+                                        <Trash2 size={15} />
+                                        <span>Del</span>
+                                      </IconTextButton>
+                                    </RowActions>
+                                  </td>
+                                </SongRow>
+                              );
+                            })
+                          )}
+                          {Array.from({ length: emptyRows }).map((_, index) => (
+                            <EmptyRow key={index}>
+                              <td colSpan={5} />
+                            </EmptyRow>
+                          ))}
+                        </tbody>
+                      </SongTable>
+                    </TableShell>
+
+                    <Pagination>
+                      <span>
+                        Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of{" "}
+                        <strong>{totalItems}</strong> Songs
+                      </span>
+                      <PageControls>
+                        <PageButton
+                          type="button"
+                          disabled={page <= 1 || status === "loading"}
+                          onClick={() => dispatch(fetchSongsRequested({ page: page - 1 }))}
+                        >
+                          Prev
+                        </PageButton>
+                        {pageNumbers.map((pageNumber) => (
+                          <PageNumber
+                            key={pageNumber}
+                            type="button"
+                            $active={pageNumber === page}
+                            onClick={() => dispatch(fetchSongsRequested({ page: pageNumber }))}
+                          >
+                            {pageNumber}
+                          </PageNumber>
+                        ))}
+                        <PageButton
+                          type="button"
+                          disabled={page >= totalPages || status === "loading"}
+                          onClick={() => dispatch(fetchSongsRequested({ page: page + 1 }))}
+                        >
+                          Next
+                        </PageButton>
+                      </PageControls>
+                    </Pagination>
+                  </CatalogCard>
+                </HomeView>
+              )}
+            </ScrollPanel>
+
+            <PlayerFooter id="playback-footer-player">
+              {activeSong ? (
+                <>
+                  <NowPlaying>
+                    <Artwork
+                      src={activeSong.artworkUrl ?? fallbackArtwork}
+                      alt={`${activeSong.album} artwork`}
+                      referrerPolicy="no-referrer"
+                    />
+                    <div>
+                      <strong id="active-track-name">{activeSong.title}</strong>
+                      <span id="active-track-artist">
+                        {activeSong.artist} - {activeSong.genre}
+                      </span>
+                    </div>
+                  </NowPlaying>
+                  <Transport>
+                    <TransportButtons>
+                      <RoundIcon
+                        id="shuffle-btn"
+                        type="button"
+                        title="Shuffle visible Songs"
+                        $active={isShuffle}
+                        onClick={() => setIsShuffle((current) => !current)}
+                      >
+                        <Shuffle size={16} />
+                      </RoundIcon>
+                      <RoundIcon id="prev-btn" type="button" title="Previous Song" onClick={() => selectAdjacentSong(-1)}>
+                        <SkipBack size={16} />
+                      </RoundIcon>
+                      <PlayButton
+                        id="play-pause-btn"
+                        type="button"
+                        title={isPlaying ? "Pause local progress" : "Start local progress"}
+                        onClick={() => setIsPlaying((current) => !current)}
+                      >
+                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                      </PlayButton>
+                      <RoundIcon id="next-btn" type="button" title="Next Song" onClick={() => selectAdjacentSong(1)}>
+                        <SkipForward size={16} />
+                      </RoundIcon>
+                      <RoundIcon
+                        id="repeat-btn"
+                        type="button"
+                        title="Repeat selected Song"
+                        $active={isRepeat}
+                        onClick={() => setIsRepeat((current) => !current)}
+                      >
+                        <RefreshCw size={16} />
+                      </RoundIcon>
+                    </TransportButtons>
+                    <Timeline>
+                      <span>{formatTime(playbackTime)}</span>
+                      <ProgressTrack>
+                        <ProgressFill style={{ width: `${progressWidth}%` }} />
+                      </ProgressTrack>
+                      <span>{activeSong.duration}</span>
+                    </Timeline>
+                  </Transport>
+                  <Utilities>
+                    <RoundIcon
+                      id="like-btn"
+                      type="button"
+                      title="Mark selected Song"
+                      $active={isLiked}
+                      onClick={() => setIsLiked((current) => !current)}
+                    >
+                      <Heart size={17} fill={isLiked ? "currentColor" : "none"} />
+                    </RoundIcon>
+                    <VolumeControl>
+                      <Volume2 size={17} />
+                      <input
+                        id="volume-slider"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volume}
+                        onChange={(event) => setVolume(Number(event.target.value))}
+                      />
+                    </VolumeControl>
+                  </Utilities>
+                </>
+              ) : (
+                <EmptyFooter>Select any Song from your Library to focus it.</EmptyFooter>
+              )}
+            </PlayerFooter>
+
+            <FloatingAdd id="sidebar-create-btn" type="button" title="Add Song" onClick={openCreateModal}>
+              <Plus size={21} />
+            </FloatingAdd>
+          </MainPanel>
+        </AppFrame>
+      </Shell>
 
       {songModal ? (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel song-form-modal" role="dialog" aria-modal="true" aria-labelledby="song-modal-title">
-            <div className="modal-heading">
-              <h2 id="song-modal-title">{modalTitle}</h2>
-              <button className="icon-button" type="button" onClick={closeSongModal} aria-label="Close Song form">
-                x
-              </button>
-            </div>
-
-            {modalErrors.length > 0 ? (
-              <div className="form-errors" role="alert">
-                {modalErrors.map((formError) => (
-                  <p key={formError}>{formError}</p>
-                ))}
-              </div>
-            ) : null}
-
-            <form className="song-form" onSubmit={handleSongSubmit}>
-              <label>
-                <span>Title</span>
-                <input
-                  value={formValues.title}
-                  onChange={(event) => handleFormChange("title", event.target.value)}
-                  maxLength={songFieldLimits.title}
-                  required
-                />
-              </label>
-              <label>
-                <span>Artist</span>
-                <input
-                  value={formValues.artist}
-                  onChange={(event) => handleFormChange("artist", event.target.value)}
-                  maxLength={songFieldLimits.artist}
-                  required
-                />
-              </label>
-              <label>
-                <span>Album</span>
-                <input
-                  value={formValues.album}
-                  onChange={(event) => handleFormChange("album", event.target.value)}
-                  maxLength={songFieldLimits.album}
-                  required
-                />
-              </label>
-              <label>
-                <span>Genre</span>
-                <select
-                  value={formValues.genre}
-                  onChange={(event) => handleFormChange("genre", event.target.value)}
-                  required
-                >
-                  <option value="">Choose genre</option>
-                  {SONG_GENRES.map((genre) => (
-                    <option value={genre} key={genre}>
-                      {genre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="wide-field">
-                <span>Artwork URL</span>
-                <input
-                  value={formValues.artworkUrl}
-                  onChange={(event) => handleFormChange("artworkUrl", event.target.value)}
-                  maxLength={songFieldLimits.artworkUrl}
-                  inputMode="url"
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" onClick={closeSongModal} disabled={isMutating}>
-                  Cancel
-                </button>
-                <button className="primary-action" type="submit" disabled={isMutating}>
-                  {isMutating ? "Saving" : modalActionLabel}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+        <SongFormDialog
+          actionLabel={actionLabel}
+          errors={modalErrors}
+          isMutating={isMutating}
+          onChange={(field, value) => setFormValues((current) => ({ ...current, [field]: value }))}
+          onClose={closeSongModal}
+          onSubmit={submitSong}
+          title={formTitle}
+          values={formValues}
+        />
       ) : null}
 
       {songToDelete ? (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
-            <div className="modal-heading">
-              <h2 id="delete-modal-title">Delete Song</h2>
-              <button className="icon-button" type="button" onClick={closeDeleteModal} aria-label="Close delete confirmation">
-                x
-              </button>
-            </div>
-            <p>
-              Delete <strong>{songToDelete.title}</strong> by {songToDelete.artist} from the Song Library?
-            </p>
-            {mutationError ? (
-              <div className="form-errors" role="alert">
-                <p>{mutationError}</p>
-              </div>
-            ) : null}
-            <div className="modal-actions">
-              <button type="button" onClick={closeDeleteModal} disabled={isMutating}>
-                Cancel
-              </button>
-              <button className="danger-action" type="button" onClick={handleDeleteConfirm} disabled={isMutating}>
-                {isMutating ? "Deleting" : "Delete Song"}
-              </button>
-            </div>
-          </section>
-        </div>
+        <ConfirmDialog
+          error={mutationError}
+          isMutating={isMutating}
+          onCancel={() => !isMutating && setSongToDelete(null)}
+          onConfirm={confirmDelete}
+          song={songToDelete}
+        />
       ) : null}
-    </main>
+    </>
   );
 };
+
+interface SongFormDialogProps {
+  actionLabel: string;
+  errors: string[];
+  isMutating: boolean;
+  onChange: (field: keyof SongFormValues, value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  title: string;
+  values: SongFormValues;
+}
+
+const SongFormDialog = ({
+  actionLabel,
+  errors,
+  isMutating,
+  onChange,
+  onClose,
+  onSubmit,
+  title,
+  values
+}: SongFormDialogProps) => (
+  <Overlay id="song-form-overlay">
+    <Dialog id="song-form-container" role="dialog" aria-modal="true" aria-labelledby="song-form-title">
+      <DialogHeader>
+        <div>
+          <h2 id="song-form-title">{title}</h2>
+          <p>Maintain required Song metadata for the central catalogue.</p>
+        </div>
+        <CloseButton id="close-form-btn" type="button" onClick={onClose} disabled={isMutating} aria-label="Close form">
+          <X size={20} />
+        </CloseButton>
+      </DialogHeader>
+
+      {errors.length > 0 ? (
+        <FormErrors role="alert">
+          {errors.map((error) => (
+            <p key={error}>{error}</p>
+          ))}
+        </FormErrors>
+      ) : null}
+
+      <Form onSubmit={onSubmit}>
+        <CoverField>
+          <FieldLabel>
+            <Image size={15} /> Artwork URL
+          </FieldLabel>
+          <CoverInputRow>
+            <ArtworkLarge src={values.artworkUrl || fallbackArtwork} alt="Artwork preview" referrerPolicy="no-referrer" />
+            <div>
+              <Input
+                id="cover-url-input"
+                value={values.artworkUrl}
+                onChange={(event) => onChange("artworkUrl", event.target.value)}
+                placeholder="Paste artwork URL..."
+                inputMode="url"
+              />
+              <PresetRow>
+                <span>Presets:</span>
+                {artworkPresets.map((preset, index) => (
+                  <PresetButton
+                    id={`cover-preset-${index}`}
+                    key={preset}
+                    type="button"
+                    $active={values.artworkUrl === preset}
+                    onClick={() => onChange("artworkUrl", preset)}
+                  >
+                    <img src={preset} alt="" referrerPolicy="no-referrer" />
+                    {values.artworkUrl === preset ? <Check size={12} /> : null}
+                  </PresetButton>
+                ))}
+              </PresetRow>
+            </div>
+          </CoverInputRow>
+        </CoverField>
+
+        <Field $wide>
+          <FieldLabel htmlFor="title-inp">
+            <Music size={15} /> Song Title *
+          </FieldLabel>
+          <Input
+            id="title-inp"
+            value={values.title}
+            onChange={(event) => onChange("title", event.target.value)}
+            placeholder="Tizita, Ambassel..."
+            required
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="artist-inp">
+            <User size={15} /> Artist Name *
+          </FieldLabel>
+          <Input
+            id="artist-inp"
+            value={values.artist}
+            onChange={(event) => onChange("artist", event.target.value)}
+            placeholder="Aster Aweke..."
+            required
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="album-inp">
+            <Disc size={15} /> Album *
+          </FieldLabel>
+          <Input
+            id="album-inp"
+            value={values.album}
+            onChange={(event) => onChange("album", event.target.value)}
+            placeholder="Kabu, Ethiopiques..."
+            required
+          />
+        </Field>
+
+        <Field $wide>
+          <FieldLabel>
+            <Tag size={15} /> Genre Category *
+          </FieldLabel>
+          <GenrePicker>
+            {SONG_GENRES.map((genre) => (
+              <GenreChoice
+                id={`genre-preset-btn-${genre}`}
+                key={genre}
+                type="button"
+                $active={values.genre === genre}
+                onClick={() => onChange("genre", genre)}
+              >
+                {genre}
+              </GenreChoice>
+            ))}
+          </GenrePicker>
+        </Field>
+
+        <Field $wide>
+          <FieldLabel htmlFor="duration-inp">
+            <Clock size={15} /> Duration *
+          </FieldLabel>
+          <Input
+            id="duration-inp"
+            value={values.duration}
+            onChange={(event) => onChange("duration", event.target.value)}
+            placeholder="3:45"
+            required
+            pattern="[0-9]{1,2}:[0-5][0-9]"
+          />
+        </Field>
+
+        <DialogActions>
+          <SecondaryAction id="cancel-song-btn" type="button" onClick={onClose} disabled={isMutating}>
+            Cancel
+          </SecondaryAction>
+          <PrimaryAction id="submit-song-btn" type="submit" disabled={isMutating}>
+            {isMutating ? "Saving" : actionLabel}
+          </PrimaryAction>
+        </DialogActions>
+      </Form>
+    </Dialog>
+  </Overlay>
+);
+
+interface ConfirmDialogProps {
+  error: string | null;
+  isMutating: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  song: Song;
+}
+
+const ConfirmDialog = ({ error, isMutating, onCancel, onConfirm, song }: ConfirmDialogProps) => (
+  <Overlay>
+    <ConfirmBox role="dialog" aria-modal="true" aria-labelledby="delete-title">
+      <DialogHeader>
+        <div>
+          <h2 id="delete-title">Delete Song</h2>
+          <p>This removes the Song record from the catalogue.</p>
+        </div>
+        <CloseButton type="button" onClick={onCancel} disabled={isMutating} aria-label="Close delete dialog">
+          <X size={20} />
+        </CloseButton>
+      </DialogHeader>
+      <DeleteCopy>
+        Delete <strong>{song.title}</strong> by {song.artist}?
+      </DeleteCopy>
+      {error ? <FormErrors role="alert"><p>{error}</p></FormErrors> : null}
+      <DialogActions>
+        <SecondaryAction type="button" onClick={onCancel} disabled={isMutating}>
+          Cancel
+        </SecondaryAction>
+        <DangerAction type="button" onClick={onConfirm} disabled={isMutating}>
+          {isMutating ? "Deleting" : "Delete Song"}
+        </DangerAction>
+      </DialogActions>
+    </ConfirmBox>
+  </Overlay>
+);
+
+interface StatsDashboardProps {
+  adapters: ReturnType<typeof getStatsAdapters>;
+  error: string | null;
+  onBack: () => void;
+  stats: SongLibraryStats;
+  status: "idle" | "loading" | "succeeded" | "failed";
+}
+
+const StatsDashboard = ({ adapters, error, onBack, stats, status }: StatsDashboardProps) => {
+  const [activeSubTab, setActiveSubTab] = useState<"artists" | "albums">("artists");
+
+  if (status === "loading") {
+    return (
+      <StatsShell>
+        <LoadingBlock>
+          <Spinner />
+          <p>Calculating catalog telemetry...</p>
+        </LoadingBlock>
+      </StatsShell>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <ErrorBanner>
+        <AlertCircle size={20} />
+        <div>
+          <strong>Unable to load statistics</strong>
+          <p>{error}</p>
+        </div>
+      </ErrorBanner>
+    );
+  }
+
+  return (
+    <StatsShell id="datadoor-container">
+      <StatsTopBar>
+        <div>
+          <h2>KPI Metrics Summary</h2>
+          <p>Catalogue-level Song, Artist, Album, and Genre distribution.</p>
+        </div>
+        <SecondaryAction type="button" onClick={onBack}>
+          Back to Catalog
+        </SecondaryAction>
+      </StatsTopBar>
+      <StatsGrid>
+        <StatsOverview id="datadoor-overview-pane">
+          <MetricGrid>
+            <MetricCard>
+              <span>Songs</span>
+              <Music size={16} />
+              <strong>{stats.totals.songs}</strong>
+              <small>Indexed records</small>
+            </MetricCard>
+            <MetricCard>
+              <span>Artists</span>
+              <User size={16} />
+              <strong>{stats.totals.artists}</strong>
+              <small>Credited names</small>
+            </MetricCard>
+            <MetricCard>
+              <span>Albums</span>
+              <Disc size={16} />
+              <strong>{stats.totals.albums}</strong>
+              <small>Album names</small>
+            </MetricCard>
+            <MetricCard>
+              <span>Genres</span>
+              <Tag size={16} />
+              <strong>{stats.totals.genres}</strong>
+              <small>Classifications</small>
+            </MetricCard>
+          </MetricGrid>
+
+          <Distribution>
+            <DistributionHeader>
+              <strong>Songs Classification by Genre</strong>
+              <span>Spectrum Distribution</span>
+            </DistributionHeader>
+            <StackedBar>
+              {adapters.genreEntries.length > 0 ? (
+                adapters.genreEntries.map(([genre, count], index) => (
+                  <StackSegment
+                    key={genre}
+                    title={`${genre}: ${count} Songs`}
+                    style={{
+                      width: `${stats.totals.songs > 0 ? (count / stats.totals.songs) * 100 : 0}%`,
+                      background: segmentColors[index % segmentColors.length]
+                    }}
+                  />
+                ))
+              ) : (
+                <EmptyText>No genres classified in this session</EmptyText>
+              )}
+            </StackedBar>
+            <LegendGrid>
+              {adapters.genreEntries.map(([genre, count], index) => (
+                <LegendItem key={genre}>
+                  <span style={{ background: segmentColors[index % segmentColors.length] }} />
+                  <strong>{genre}</strong>
+                  <em>{count}</em>
+                </LegendItem>
+              ))}
+            </LegendGrid>
+          </Distribution>
+
+          <RatioList>
+            <RatioRow>
+              <BarChart2 size={15} />
+              <span>Songs per Artist</span>
+              <strong>{adapters.averageSongsPerArtist}</strong>
+            </RatioRow>
+            <RatioRow>
+              <Layers size={15} />
+              <span>Songs per Album</span>
+              <strong>{adapters.averageSongsPerAlbum}</strong>
+            </RatioRow>
+            <RatioRow>
+              <Activity size={15} />
+              <span>Albums per Artist</span>
+              <strong>{adapters.averageAlbumsPerArtist}</strong>
+            </RatioRow>
+          </RatioList>
+        </StatsOverview>
+
+        <StatsDetails id="datadoor-analytics-pane">
+          <DominantCard>
+            <span>Dominant Sector</span>
+            <Activity size={16} />
+            <h3>Main Catalog Genre</h3>
+            <strong>
+              {adapters.topGenre?.genre ?? "N/A"}{" "}
+              <em>({adapters.topGenre?.songs ?? 0} Song{adapters.topGenre?.songs === 1 ? "" : "s"})</em>
+            </strong>
+            {adapters.topArtist ? (
+              <TopArtist>
+                <span>Most Represented Artist</span>
+                <strong>
+                  {adapters.topArtist.artist} <em>({adapters.topArtist.songs} indexed Songs)</em>
+                </strong>
+              </TopArtist>
+            ) : null}
+          </DominantCard>
+
+          <DirectoryHeader>
+            <h3>{activeSubTab === "artists" ? "Artist Inventory Directory" : "Album Volume Directory"}</h3>
+            <TabSwitch>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("artists")}
+                data-active={activeSubTab === "artists"}
+              >
+                Artists ({stats.artists.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("albums")}
+                data-active={activeSubTab === "albums"}
+              >
+                Albums ({stats.songsByAlbum.length})
+              </button>
+            </TabSwitch>
+          </DirectoryHeader>
+
+          <DirectoryTable>
+            <thead>
+              {activeSubTab === "artists" ? (
+                <tr>
+                  <th>Artist Name</th>
+                  <th>Albums Count</th>
+                  <th>Songs Contributed</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th>Album Title</th>
+                  <th>Relative Density Indicator</th>
+                  <th>Songs Segment</th>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {activeSubTab === "artists"
+                ? stats.artists.map((artist) => (
+                    <tr key={artist.artist}>
+                      <td>
+                        <MiniAvatar>{artist.artist.charAt(0)}</MiniAvatar>
+                        {artist.artist}
+                      </td>
+                      <td>{artist.albums}</td>
+                      <td>
+                        <CountPill>{artist.songs} Songs</CountPill>
+                      </td>
+                    </tr>
+                  ))
+                : adapters.albumEntries.map(([album, count]) => (
+                    <tr key={album}>
+                      <td>
+                        <AlbumIcon>
+                          <Disc size={14} />
+                        </AlbumIcon>
+                        {album}
+                      </td>
+                      <td>
+                        <Density>
+                          <span style={{ width: `${Math.min(100, (count / adapters.maxAlbumSongs) * 100)}%` }} />
+                        </Density>
+                      </td>
+                      <td>
+                        <CountPill>{count} Songs</CountPill>
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </DirectoryTable>
+        </StatsDetails>
+      </StatsGrid>
+    </StatsShell>
+  );
+};
+
+const segmentColors = ["#111111", "#9c5aff", "#f05c3c", "#eca83d", "#3b82f6", "#22c55e"];
+
+const Shell = styled.main`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f4f4f5;
+
+  @media (max-width: 640px) {
+    padding: 0;
+  }
+`;
+
+const AppFrame = styled.div`
+  width: min(1280px, 100%);
+  height: calc(100vh - 48px);
+  min-height: 760px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(39, 39, 42, 0.12);
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow: 0 26px 70px rgba(24, 24, 27, 0.2);
+
+  @media (max-width: 760px) {
+    height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+    flex-direction: column;
+  }
+`;
+
+const Sidebar = styled.aside`
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 14px;
+  border-right: 1px solid rgba(39, 39, 42, 0.08);
+  background: #ffffff;
+  flex-shrink: 0;
+
+  @media (max-width: 760px) {
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid rgba(39, 39, 42, 0.08);
+    padding: 12px;
+  }
+`;
+
+const BrandButton = styled.button`
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #dc2626;
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.18);
+
+  span {
+    height: 2px;
+    width: 16px;
+    border-radius: 999px;
+    background: #ffffff;
+  }
+
+  span:nth-of-type(2) {
+    width: 19px;
+  }
+`;
+
+const SidebarSpacer = styled.div`
+  width: 40px;
+  height: 40px;
+`;
+
+const MainPanel = styled.section`
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #fafafc;
+  overflow: hidden;
+`;
+
+const ScrollPanel = styled.div`
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px;
+
+  @media (max-width: 760px) {
+    padding: 16px;
+  }
+`;
+
+const HomeView = styled.div`
+  display: grid;
+  gap: 24px;
+`;
+
+const TopGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const HeroCard = styled.section`
+  min-height: 240px;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 28px;
+  padding: 28px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #7f1d1d 0%, #18181b 48%, #050505 100%);
+  box-shadow: 0 18px 42px rgba(24, 24, 27, 0.16);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(127, 29, 29, 0.94) 0%, rgba(24, 24, 27, 0.82) 48%, transparent 75%);
+    z-index: 1;
+  }
+
+  > *:not(img) {
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (max-width: 560px) {
+    min-height: 240px;
+    border-radius: 24px;
+    padding: 28px;
+
+    &::after {
+      background: linear-gradient(90deg, rgba(127, 29, 29, 0.96) 0%, rgba(24, 24, 27, 0.78) 72%, rgba(24, 24, 27, 0.32) 100%);
+    }
+  }
+`;
+
+const Kicker = styled.div`
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  span {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #34d399;
+  }
+`;
+
+const HeroCopy = styled.div`
+  max-width: 360px;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(1.85rem, 3vw, 2.55rem);
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    color: #d4d4d8;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    font-weight: 650;
+  }
+`;
+
+const HeroImage = styled.img`
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 46%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) brightness(0.88);
+
+  @media (max-width: 560px) {
+    width: 100%;
+    opacity: 0.42;
+  }
+`;
+
+const HeroActions = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const BaseAction = styled.button`
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
+const PrimaryAction = styled(BaseAction)`
+  background: #ffffff;
+  color: #18181b;
+`;
+
+const SecondaryAction = styled(BaseAction)`
+  background: #27272a;
+  color: #fafafa;
+`;
+
+const DangerAction = styled(BaseAction)`
+  background: #dc2626;
+  color: #ffffff;
+`;
+
+const ArtistPanel = styled.section`
+  min-width: 0;
+  min-height: 240px;
+  border: 1px solid rgba(39, 39, 42, 0.1);
+  border-radius: 28px;
+  background: #ffffff;
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+
+  @media (max-width: 560px) {
+    border-radius: 24px;
+    padding: 20px;
+  }
+`;
+
+const PanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  @media (max-width: 560px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+`;
+
+const PanelTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #18181b;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+
+  svg {
+    color: #ef4444;
+  }
+`;
+
+const TextButton = styled.button`
+  border: 0;
+  background: transparent;
+  color: #8d8d94;
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+
+  &:hover {
+    color: #ef4444;
+  }
+`;
+
+const ArtistList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const ArtistRow = styled.div`
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px;
+  border: 1px solid #f4f4f5;
+  border-radius: 14px;
+
+  strong {
+    display: block;
+    color: #27272a;
+    font-size: 0.78rem;
+  }
+
+  span {
+    color: #a1a1aa;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 400px) {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    > span:last-of-type {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+`;
+
+const Avatar = styled.div<{ $tone: number }>`
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 950;
+  background: ${({ $tone }) => ["#dbeafe", "#fee2e2", "#fef3c7", "#f3e8ff"][$tone % 4]};
+  color: ${({ $tone }) => ["#1e40af", "#991b1b", "#92400e", "#6b21a8"][$tone % 4]};
+`;
+
+const CountPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #27272a;
+  color: #ffffff;
+  padding: 5px 9px;
+  font-size: 0.64rem;
+  font-weight: 900;
+  white-space: nowrap;
+`;
+
+const EmptyText = styled.p`
+  margin: 0;
+  color: #a1a1aa;
+  font-size: 0.78rem;
+  font-weight: 650;
+  font-style: italic;
+`;
+
+const CatalogCard = styled.section`
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(39, 39, 42, 0.1);
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+
+  @media (max-width: 560px) {
+    border-radius: 24px;
+  }
+`;
+
+const CatalogHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.08);
+
+  h2 {
+    margin: 0;
+    color: #27272a;
+    font-size: 0.88rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  span {
+    color: #8d8d94;
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 980px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+`;
+
+const Controls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+
+  @media (max-width: 760px) {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const SearchShell = styled.label`
+  height: 34px;
+  width: 210px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 999px;
+  background: #fafafa;
+  padding: 0 12px;
+  color: #a1a1aa;
+
+  input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #18181b;
+    font-size: 0.72rem;
+    font-weight: 750;
+  }
+
+  @media (max-width: 760px) {
+    width: 100%;
+  }
+`;
+
+const Divider = styled.div`
+  width: 1px;
+  height: 18px;
+  background: #e4e4e7;
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
+const GenreControls = styled.div`
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a1a1aa;
+
+  strong {
+    color: #a1a1aa;
+    font-size: 0.64rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 760px) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+`;
+
+const GenreScroller = styled.div`
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+`;
+
+const GenreButton = styled.button<{ $active?: boolean }>`
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: ${({ $active }) => ($active ? "#ef4444" : "#f4f4f5")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#71717a")};
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+const TableShell = styled.div`
+  overflow-x: auto;
+`;
+
+const SongTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  color: #4b5563;
+  font-size: 0.78rem;
+
+  th {
+    padding: 13px 20px;
+    background: #fafafa;
+    border-bottom: 1px solid #e4e4e7;
+    color: #a1a1aa;
+    font-size: 0.58rem;
+    font-weight: 950;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+  }
+
+  td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f4f4f5;
+  }
+
+  th:last-of-type,
+  td:last-of-type {
+    text-align: right;
+  }
+
+  @media (max-width: 760px) {
+    min-width: 0;
+
+    th:nth-of-type(2),
+    td:nth-of-type(2),
+    th:nth-of-type(3),
+    td:nth-of-type(3) {
+      display: none;
+    }
+
+    th,
+    td {
+      padding: 12px;
+    }
+  }
+`;
+
+const SongRow = styled.tr<{ $selected?: boolean }>`
+  background: ${({ $selected }) => ($selected ? "rgba(254, 242, 242, 0.78)" : "#ffffff")};
+  transition: background 150ms ease;
+
+  &:hover {
+    background: ${({ $selected }) => ($selected ? "rgba(254, 226, 226, 0.8)" : "#fafafa")};
+  }
+`;
+
+const TitleCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+
+  @media (max-width: 760px) {
+    min-width: 0;
+  }
+`;
+
+const IndexCell = styled.span`
+  width: 22px;
+  display: inline-flex;
+  justify-content: center;
+  color: #a1a1aa;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+`;
+
+const Equalizer = styled.span`
+  height: 14px;
+  display: inline-flex;
+  align-items: end;
+  gap: 2px;
+
+  span {
+    width: 2px;
+    border-radius: 999px;
+    background: #dc2626;
+    animation: pulse-bar 780ms infinite ease-in-out alternate;
+  }
+
+  span:nth-of-type(1) {
+    height: 8px;
+  }
+
+  span:nth-of-type(2) {
+    height: 13px;
+    animation-delay: 120ms;
+  }
+
+  span:nth-of-type(3) {
+    height: 6px;
+    animation-delay: 240ms;
+  }
+
+  @keyframes pulse-bar {
+    from {
+      transform: scaleY(0.55);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+`;
+
+const Artwork = styled.img`
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #f4f4f5;
+`;
+
+const ArtworkLarge = styled(Artwork)`
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+`;
+
+const TitleText = styled.div`
+  min-width: 0;
+
+  strong {
+    display: block;
+    max-width: min(230px, 42vw);
+    overflow: hidden;
+    color: #18181b;
+    font-size: 0.84rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    display: block;
+    max-width: min(230px, 42vw);
+    overflow: hidden;
+    color: #a1a1aa;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const GenreLabel = styled.span`
+  display: inline-flex;
+  border: 1px solid #e4e4e7;
+  border-radius: 999px;
+  background: #f4f4f5;
+  padding: 5px 9px;
+  color: #71717a;
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+`;
+
+const DurationText = styled.span`
+  color: #8d8d94;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 900;
+`;
+
+const RowActions = styled.div`
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  @media (max-width: 760px) {
+    gap: 2px;
+  }
+`;
+
+const IconTextButton = styled.button<{ $danger?: boolean }>`
+  border: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  color: ${({ $danger }) => ($danger ? "#71717a" : "#52525b")};
+  padding: 7px 8px;
+  font-size: 0.68rem;
+  font-weight: 850;
+
+  &:hover {
+    background: ${({ $danger }) => ($danger ? "rgba(239, 68, 68, 0.1)" : "#f4f4f5")};
+    color: ${({ $danger }) => ($danger ? "#dc2626" : "#18181b")};
+  }
+
+  @media (max-width: 760px) {
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    padding: 0;
+
+    span {
+      display: none;
+    }
+  }
+`;
+
+const EmptyTableText = styled.div`
+  padding: 24px;
+  text-align: center;
+  color: #8d8d94;
+  font-weight: 700;
+`;
+
+const EmptyRow = styled.tr`
+  height: 42px;
+`;
+
+const Pagination = styled.footer`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  border-top: 1px solid #e4e4e7;
+  background: #fafafa;
+  color: #8d8d94;
+  font-size: 0.72rem;
+  font-weight: 750;
+
+  @media (max-width: 760px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const PageControls = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const PageButton = styled.button`
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #52525b;
+  padding: 6px 10px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+
+  &:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+`;
+
+const PageNumber = styled(PageButton)<{ $active?: boolean }>`
+  min-width: 28px;
+  padding: 6px;
+  background: ${({ $active }) => ($active ? "#ef4444" : "#ffffff")};
+  border-color: ${({ $active }) => ($active ? "#ef4444" : "#e4e4e7")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#52525b")};
+`;
+
+const PlayerFooter = styled.footer`
+  min-height: 86px;
+  border-top: 1px solid #e4e4e7;
+  display: grid;
+  grid-template-columns: minmax(200px, 0.9fr) minmax(260px, 1.4fr) minmax(160px, 0.8fr);
+  align-items: center;
+  gap: 18px;
+  background: #ffffff;
+  padding: 14px 24px;
+  flex-shrink: 0;
+
+  @media (max-width: 920px) {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  @media (max-width: 760px) {
+    z-index: 8;
+    min-height: 152px;
+    gap: 10px;
+    padding: 12px 16px;
+    box-shadow: 0 -18px 38px rgba(24, 24, 27, 0.08);
+  }
+`;
+
+const NowPlaying = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+
+  strong,
+  span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #18181b;
+    font-size: 0.84rem;
+    font-weight: 950;
+  }
+
+  span {
+    color: #8d8d94;
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+`;
+
+const Transport = styled.div`
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+`;
+
+const TransportButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 18px;
+
+  @media (max-width: 760px) {
+    gap: 12px;
+  }
+`;
+
+const RoundIcon = styled.button<{ $active?: boolean }>`
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: ${({ $active }) => ($active ? "#dc2626" : "#71717a")};
+  padding: 6px;
+
+  &:hover {
+    background: #f4f4f5;
+    color: #18181b;
+  }
+`;
+
+const PlayButton = styled(RoundIcon)`
+  width: 42px;
+  height: 42px;
+  background: #18181b;
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(24, 24, 27, 0.18);
+
+  &:hover {
+    background: #27272a;
+    color: #ffffff;
+  }
+`;
+
+const Timeline = styled.div`
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #a1a1aa;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 900;
+`;
+
+const ProgressTrack = styled.div`
+  height: 6px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f4f4f5;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  border-radius: inherit;
+  background: #dc2626;
+`;
+
+const Utilities = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+
+  @media (max-width: 760px) {
+    justify-content: space-between;
+  }
+`;
+
+const VolumeControl = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a1a1aa;
+
+  input {
+    width: 112px;
+    accent-color: #dc2626;
+  }
+`;
+
+const EmptyFooter = styled.div`
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #a1a1aa;
+  font-size: 0.78rem;
+  font-weight: 750;
+  font-style: italic;
+`;
+
+const FloatingAdd = styled.button`
+  position: absolute;
+  right: 32px;
+  bottom: 108px;
+  z-index: 10;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 16px 34px rgba(220, 38, 38, 0.22);
+
+  &:hover {
+    background: #b91c1c;
+  }
+
+  @media (max-width: 760px) {
+    right: 16px;
+    bottom: 168px;
+    width: 48px;
+    height: 48px;
+  }
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(8px);
+`;
+
+const Dialog = styled.div`
+  width: min(540px, 100%);
+  overflow: hidden;
+  border: 1px solid #27272a;
+  border-radius: 28px;
+  background: #18181b;
+  color: #f4f4f5;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+`;
+
+const ConfirmBox = styled(Dialog)`
+  width: min(460px, 100%);
+`;
+
+const DialogHeader = styled.header`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid #27272a;
+
+  h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.18rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #a1a1aa;
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+`;
+
+const CloseButton = styled.button`
+  border: 0;
+  border-radius: 999px;
+  background: #27272a;
+  color: #d4d4d8;
+  padding: 8px;
+
+  &:hover:not(:disabled) {
+    color: #ffffff;
+  }
+`;
+
+const FormErrors = styled.div`
+  margin: 16px 24px 0;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  border-radius: 14px;
+  background: rgba(127, 29, 29, 0.34);
+  color: #fecaca;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  font-weight: 750;
+
+  p {
+    margin: 0;
+  }
+`;
+
+const Form = styled.form`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Field = styled.label<{ $wide?: boolean }>`
+  grid-column: ${({ $wide }) => ($wide ? "1 / -1" : "auto")};
+  display: grid;
+  gap: 7px;
+`;
+
+const CoverField = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 9px;
+`;
+
+const FieldLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #d4d4d8;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const CoverInputRow = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  height: 40px;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  outline: 0;
+  background: #27272a;
+  color: #f4f4f5;
+  padding: 0 13px;
+  font-size: 0.82rem;
+  font-weight: 650;
+
+  &:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  }
+`;
+
+const PresetRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+
+  span {
+    color: #a1a1aa;
+    font-size: 0.64rem;
+    font-weight: 750;
+  }
+`;
+
+const PresetButton = styled.button<{ $active?: boolean }>`
+  width: 26px;
+  height: 26px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 2px solid ${({ $active }) => ($active ? "#ef4444" : "transparent")};
+  border-radius: 8px;
+  background: transparent;
+  padding: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  svg {
+    position: absolute;
+    color: #ffffff;
+  }
+`;
+
+const GenrePicker = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+`;
+
+const GenreChoice = styled.button<{ $active?: boolean }>`
+  border: 1px solid ${({ $active }) => ($active ? "#ef4444" : "#3f3f46")};
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? "#ef4444" : "#27272a")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#d4d4d8")};
+  padding: 7px 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+`;
+
+const DialogActions = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #27272a;
+`;
+
+const DeleteCopy = styled.p`
+  margin: 0;
+  padding: 22px 24px 0;
+  color: #d4d4d8;
+  font-size: 0.88rem;
+`;
+
+const LoadingBlock = styled.div`
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  color: #71717a;
+  font-size: 0.84rem;
+  font-weight: 800;
+
+  p {
+    margin: 0;
+  }
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e4e4e7;
+  border-top-color: #ef4444;
+  border-radius: 999px;
+  animation: spin 800ms linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 18px;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 16px;
+
+  p {
+    margin: 3px 0 0;
+    color: #dc2626;
+    font-size: 0.78rem;
+  }
+
+  button {
+    border: 0;
+    background: transparent;
+    color: #991b1b;
+    padding: 8px 0 0;
+    font-size: 0.72rem;
+    font-weight: 850;
+    text-decoration: underline;
+  }
+`;
+
+const StatsShell = styled.section`
+  border: 1px solid rgba(39, 39, 42, 0.1);
+  border-radius: 28px;
+  background: #ffffff;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+`;
+
+const StatsTopBar = styled.header`
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+
+  h2 {
+    margin: 0;
+    color: #f05c3c;
+    font-size: 0.78rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #71717a;
+    font-size: 0.84rem;
+    font-weight: 650;
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 34px;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatsOverview = styled.section`
+  display: grid;
+  gap: 24px;
+`;
+
+const StatsDetails = styled.section`
+  display: grid;
+  gap: 24px;
+  align-content: start;
+`;
+
+const MetricGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+`;
+
+const MetricCard = styled.div`
+  border: 1px solid #e4e4e7;
+  border-radius: 18px;
+  background: #fafafa;
+  padding: 16px;
+
+  span {
+    color: #a1a1aa;
+    font-size: 0.62rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  svg {
+    float: right;
+    color: #f05c3c;
+  }
+
+  strong {
+    display: block;
+    color: #18181b;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1.55rem;
+    font-weight: 950;
+  }
+
+  small {
+    color: #a1a1aa;
+    font-size: 0.62rem;
+    font-weight: 750;
+  }
+`;
+
+const Distribution = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+const DistributionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #71717a;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+`;
+
+const StackedBar = styled.div`
+  min-height: 18px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  background: #fafafa;
+`;
+
+const StackSegment = styled.div`
+  min-width: 2px;
+`;
+
+const LegendGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+`;
+
+const LegendItem = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 6px;
+  color: #52525b;
+  font-size: 0.68rem;
+  font-weight: 800;
+
+  span {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  em {
+    color: #a1a1aa;
+    font-style: normal;
+    font-family: "JetBrains Mono", monospace;
+  }
+`;
+
+const RatioList = styled.div`
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e4e4e7;
+  padding-top: 18px;
+`;
+
+const RatioRow = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e4e4e7;
+  border-radius: 14px;
+  background: #fafafa;
+  padding: 10px;
+  color: #52525b;
+  font-size: 0.76rem;
+  font-weight: 800;
+
+  strong {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #18181b;
+    padding: 3px 8px;
+    font-family: "JetBrains Mono", monospace;
+  }
+`;
+
+const DominantCard = styled.div`
+  position: relative;
+  border-radius: 20px;
+  background: #18181b;
+  color: #ffffff;
+  padding: 20px;
+
+  > span {
+    color: #eca83d;
+    font-size: 0.62rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  > svg {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #f05c3c;
+  }
+
+  h3 {
+    margin: 14px 0 3px;
+    color: #a1a1aa;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    font-size: 1rem;
+  }
+
+  em {
+    color: #d4d4d8;
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 600;
+  }
+`;
+
+const TopArtist = styled.div`
+  margin-top: 14px;
+  border-top: 1px solid #3f3f46;
+  padding-top: 12px;
+`;
+
+const DirectoryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #e4e4e7;
+  padding-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    color: #18181b;
+    font-size: 0.9rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+`;
+
+const TabSwitch = styled.div`
+  display: flex;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #f4f4f5;
+  padding: 3px;
+
+  button {
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #8d8d94;
+    padding: 6px 10px;
+    font-size: 0.65rem;
+    font-weight: 950;
+    text-transform: uppercase;
+  }
+
+  button[data-active="true"] {
+    background: #ffffff;
+    color: #18181b;
+    box-shadow: 0 1px 4px rgba(24, 24, 27, 0.08);
+  }
+`;
+
+const DirectoryTable = styled.table`
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #e4e4e7;
+  border-radius: 18px;
+  border-spacing: 0;
+  color: #52525b;
+  font-size: 0.76rem;
+
+  th {
+    background: #fcf9f5;
+    color: #a1a1aa;
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 0.58rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  td {
+    border-top: 1px solid #f4f4f5;
+    padding: 11px 14px;
+    font-weight: 800;
+  }
+
+  th:not(:first-of-type),
+  td:not(:first-of-type) {
+    text-align: right;
+  }
+`;
+
+const MiniAvatar = styled.span`
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  margin-right: 9px;
+  border-radius: 999px;
+  background: #18181b;
+  color: #ffffff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 950;
+`;
+
+const AlbumIcon = styled.span`
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  margin-right: 9px;
+  border-radius: 9px;
+  background: rgba(161, 90, 255, 0.14);
+  color: #a15aff;
+`;
+
+const Density = styled.div`
+  width: 140px;
+  height: 7px;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f4f4f5;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #a15aff;
+  }
+`;

@@ -9,6 +9,7 @@ export interface Song {
   artist: string;
   album: string;
   genre: SongGenre;
+  duration: string;
   artworkUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -56,6 +57,7 @@ export interface SongMutationPayload {
   artist: string;
   album: string;
   genre: SongGenre;
+  duration: string;
   artworkUrl: string | null;
 }
 

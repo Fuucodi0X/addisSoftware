@@ -64,7 +64,7 @@ const parseMutationError = async (response: Response, fallback: string) => {
 };
 
 const writeSong = async (
-  method: "POST" | "PUT",
+  method: "POST" | "PATCH",
   song: SongMutationPayload,
   id?: string
 ): Promise<void> => {
@@ -120,7 +120,7 @@ function* createSongWorker(action: ReturnType<typeof createSongRequested>) {
 function* updateSongWorker(action: ReturnType<typeof updateSongRequested>) {
   try {
     const query: SongQueryParams = yield select((state: RootState) => state.songs.query);
-    yield call(writeSong, "PUT", action.payload.song, action.payload.id);
+    yield call(writeSong, "PATCH", action.payload.song, action.payload.id);
     yield put(songMutationSucceeded());
     yield* refetchAfterMutation(query.page);
   } catch (error) {
