@@ -950,28 +950,40 @@ interface ConfirmDialogProps {
 
 const ConfirmDialog = ({ error, isMutating, onCancel, onConfirm, song }: ConfirmDialogProps) => (
   <Overlay>
-    <ConfirmBox role="dialog" aria-modal="true" aria-labelledby="delete-title">
-      <DialogHeader>
+    <ConfirmBox role="dialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-description">
+      <ConfirmHeader>
+        <DeleteIconBadge aria-hidden="true">
+          <Trash2 size={22} />
+        </DeleteIconBadge>
         <div>
-          <h2 id="delete-title">Delete Song</h2>
-          <p>This removes the Song record from the catalogue.</p>
+          <h2 id="delete-title">Delete this song?</h2>
+          <p id="delete-description">This will permanently remove the song from your library.</p>
         </div>
         <CloseButton type="button" onClick={onCancel} disabled={isMutating} aria-label="Close delete dialog">
           <X size={20} />
         </CloseButton>
-      </DialogHeader>
-      <DeleteCopy>
-        Delete <strong>{song.title}</strong> by {song.artist}?
-      </DeleteCopy>
+      </ConfirmHeader>
+      <DeletePreview>
+        <DeleteArtwork src={song.artworkUrl ?? fallbackArtwork} alt="" referrerPolicy="no-referrer" />
+        <DeleteSongMeta>
+          <strong>{song.title}</strong>
+          <span>{song.artist}</span>
+          <small>{song.album}</small>
+        </DeleteSongMeta>
+      </DeletePreview>
+      <DeleteWarning>
+        <strong>Permanent action</strong>
+        <span>This song and its catalog metadata cannot be restored after deletion.</span>
+      </DeleteWarning>
       {error ? <FormErrors role="alert"><p>{error}</p></FormErrors> : null}
-      <DialogActions>
+      <ConfirmActions>
         <SecondaryAction type="button" onClick={onCancel} disabled={isMutating}>
           Cancel
         </SecondaryAction>
         <DangerAction type="button" onClick={onConfirm} disabled={isMutating}>
           {isMutating ? "Deleting" : "Delete Song"}
         </DangerAction>
-      </DialogActions>
+      </ConfirmActions>
     </ConfirmBox>
   </Overlay>
 );
@@ -2199,6 +2211,11 @@ const Dialog = styled.div`
 
 const ConfirmBox = styled(Dialog)`
   width: min(460px, 100%);
+  border-color: rgba(248, 113, 113, 0.3);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(239, 68, 68, 0.22), transparent 34%),
+    linear-gradient(180deg, #1f1f23 0%, #141416 100%);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(239, 68, 68, 0.08);
 `;
 
 const DialogHeader = styled.header`
@@ -2222,6 +2239,123 @@ const DialogHeader = styled.header`
     color: #a1a1aa;
     font-size: 0.78rem;
     font-weight: 650;
+  }
+`;
+
+const ConfirmHeader = styled(DialogHeader)`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 24px 24px 20px;
+  border-bottom: 0;
+
+  h2 {
+    font-size: 1.28rem;
+  }
+
+  p {
+    max-width: 300px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    button {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+  }
+`;
+
+const DeleteIconBadge = styled.div`
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.32), rgba(127, 29, 29, 0.42));
+  color: #fecaca;
+  box-shadow: 0 16px 34px rgba(127, 29, 29, 0.32);
+`;
+
+const DeletePreview = styled.div`
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin: 0 24px;
+  border: 1px solid rgba(63, 63, 70, 0.78);
+  border-radius: 20px;
+  background: rgba(39, 39, 42, 0.56);
+  padding: 12px;
+`;
+
+const DeleteArtwork = styled.img`
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #27272a;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+`;
+
+const DeleteSongMeta = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+
+  strong,
+  span,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  span {
+    color: #e4e4e7;
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+
+  small {
+    color: #a1a1aa;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+`;
+
+const DeleteWarning = styled.div`
+  display: grid;
+  gap: 4px;
+  margin: 14px 24px 0;
+  border-left: 3px solid #ef4444;
+  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.22);
+  padding: 12px 14px;
+
+  strong {
+    color: #fecaca;
+    font-size: 0.75rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  span {
+    color: #d4d4d8;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.45;
   }
 `;
 
@@ -2372,11 +2506,31 @@ const DialogActions = styled.div`
   border-top: 1px solid #27272a;
 `;
 
-const DeleteCopy = styled.p`
-  margin: 0;
-  padding: 22px 24px 0;
-  color: #d4d4d8;
-  font-size: 0.88rem;
+const ConfirmActions = styled(DialogActions)`
+  margin-top: 18px;
+  padding: 18px 24px 24px;
+  border-top-color: rgba(63, 63, 70, 0.72);
+
+  > button {
+    min-width: 128px;
+  }
+
+  > button:last-child {
+    background: #ef4444;
+    box-shadow: 0 14px 30px rgba(220, 38, 38, 0.25);
+
+    &:hover:not(:disabled) {
+      background: #dc2626;
+    }
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;
+
+    > button {
+      width: 100%;
+    }
+  }
 `;
 
 const LoadingBlock = styled.div`

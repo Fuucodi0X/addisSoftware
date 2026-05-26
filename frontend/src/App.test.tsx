@@ -97,4 +97,17 @@ describe("App", () => {
     expect(within(footer as HTMLElement).getByText("Yene Habesha")).toBeTruthy();
     expect(within(footer as HTMLElement).getByText("Aster Aweke - Soul")).toBeTruthy();
   });
+
+  it("opens the delete confirmation modal without blanking the app", () => {
+    renderApp({ songs: appState() });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /del/i })[0]);
+
+    const dialog = screen.getByRole("dialog", { name: "Delete this song?" });
+
+    expect(dialog).toBeTruthy();
+    expect(within(dialog).getByText("Tizita")).toBeTruthy();
+    expect(within(dialog).getByText("Permanent action")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Song Library" })).toBeTruthy();
+  });
 });
