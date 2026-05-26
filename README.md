@@ -31,6 +31,14 @@ pnpm test
 pnpm build
 ```
 
+Seed local Song records after MongoDB is running:
+
+```sh
+pnpm --filter @addis-song-library/backend seed
+```
+
+The seed command upserts curated Ethiopian-focused Songs, does not delete existing data, and refuses to run with `NODE_ENV=production`.
+
 ## Docker Compose
 
 Docker Compose is scoped to local backend and MongoDB development only:
@@ -40,6 +48,7 @@ docker compose up --build
 ```
 
 The backend health endpoint is available at `http://localhost:4000/health`.
+The Song list endpoint is available at `http://localhost:4000/api/songs`.
 
 ## Environment
 

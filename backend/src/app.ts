@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import { config } from "./config.js";
+import { createSongRouter } from "./songs/routes.js";
 
 export const createApp = () => {
   const app = express();
@@ -17,6 +18,20 @@ export const createApp = () => {
       uptime: process.uptime()
     });
   });
+
+  app.use("/api/songs", createSongRouter());
+
+  app.use(
+    (
+      error: unknown,
+      _request: express.Request,
+      response: express.Response,
+      _next: express.NextFunction
+    ) => {
+      console.error(error);
+      response.status(500).json({ message: "Internal server error" });
+    }
+  );
 
   return app;
 };
