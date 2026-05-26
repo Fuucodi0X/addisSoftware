@@ -1,8 +1,9 @@
 services:
   backend:
     build:
-      context: ./backend
-    command: pnpm dev
+      context: .
+      dockerfile: backend/Dockerfile
+    command: pnpm --filter @addis-song-library/backend dev
     environment:
       NODE_ENV: development
       PORT: 4000
@@ -10,8 +11,9 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend
       - /app/node_modules
+      - /app/backend/node_modules
     depends_on:
       - mongo
 

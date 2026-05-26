@@ -4,11 +4,14 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile=false
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/package.json
+RUN pnpm install --filter @addis-song-library/backend... --frozen-lockfile
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY backend/tsconfig.json ./backend/tsconfig.json
+COPY backend/src ./backend/src
+
+WORKDIR /app/backend
 
 EXPOSE 4000
 
