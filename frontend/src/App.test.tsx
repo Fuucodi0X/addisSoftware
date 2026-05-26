@@ -137,9 +137,22 @@ describe("App", () => {
     const dialog = screen.getByRole("dialog", { name: "Delete this song?" });
 
     expect(dialog).toBeTruthy();
-    expect(within(dialog).getByText("Tizita")).toBeTruthy();
+    expect(within(dialog).getAllByText("Tizita").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("Permanent action")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Song Library" })).toBeTruthy();
+  });
+
+  it("cancels the delete confirmation modal without dispatching a delete request", async () => {
+    const { store } = renderApp({ songs: appState() });
+    const dispatchSpy = vi.spyOn(store, "dispatch");
+
+    await settleMountEffects();
+    dispatchSpy.mockClear();
+    fireEvent.click(screen.getAllByRole("button", { name: /del/i })[0]);
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete this song?" })).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Delete this song?" })).toBeNull();
+    expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: deleteSongRequested.type }));
   });
 
   it("dispatches create Song requests from the add modal", async () => {

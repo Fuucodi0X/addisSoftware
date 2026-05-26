@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { DeleteSongModal } from "./features/songs/components/DeleteSongModal";
 import { SongFormModal } from "./features/songs/components/SongFormModal";
 import {
   clearSongMutationState,
@@ -348,6 +349,11 @@ export const App = () => {
     setSongModal({ mode: "edit", song });
   };
 
+  const openDeleteModal = (song: Song) => {
+    dispatch(clearSongMutationState());
+    setSongToDelete(song);
+  };
+
   const closeSongModal = () => {
     if (isMutating) {
       return;
@@ -357,6 +363,15 @@ export const App = () => {
     setSongModal(null);
     setFormValues(emptySongForm);
     setFormErrors([]);
+  };
+
+  const closeDeleteModal = () => {
+    if (isMutating) {
+      return;
+    }
+
+    dispatch(clearSongMutationState());
+    setSongToDelete(null);
   };
 
   const submitSong = (event: FormEvent<HTMLFormElement>) => {
@@ -640,7 +655,7 @@ export const App = () => {
                                         type="button"
                                         title="Delete Song"
                                         $danger
-                                        onClick={() => setSongToDelete(song)}
+                                        onClick={() => openDeleteModal(song)}
                                       >
                                         <Trash2 size={15} />
                                         <span>Del</span>
@@ -807,10 +822,11 @@ export const App = () => {
       ) : null}
 
       {songToDelete ? (
-        <ConfirmDialog
+        <DeleteSongModal
           error={mutationError}
+          fallbackArtwork={fallbackArtwork}
           isMutating={isMutating}
-          onCancel={() => !isMutating && setSongToDelete(null)}
+          onClose={closeDeleteModal}
           onConfirm={confirmDelete}
           song={songToDelete}
         />
@@ -818,54 +834,6 @@ export const App = () => {
     </>
   );
 };
-
-interface ConfirmDialogProps {
-  error: string | null;
-  isMutating: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-  song: Song;
-}
-
-const ConfirmDialog = ({ error, isMutating, onCancel, onConfirm, song }: ConfirmDialogProps) => (
-  <Overlay>
-    <ConfirmBox role="dialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-description">
-      <ConfirmHeader>
-        <DeleteIconBadge aria-hidden="true">
-          <Trash2 size={22} />
-        </DeleteIconBadge>
-        <div>
-          <h2 id="delete-title">Delete this song?</h2>
-          <p id="delete-description">This will permanently remove the song from your library.</p>
-        </div>
-        <CloseButton type="button" onClick={onCancel} disabled={isMutating} aria-label="Close delete dialog">
-          <X size={20} />
-        </CloseButton>
-      </ConfirmHeader>
-      <DeletePreview>
-        <DeleteArtwork src={song.artworkUrl ?? fallbackArtwork} alt="" referrerPolicy="no-referrer" />
-        <DeleteSongMeta>
-          <strong>{song.title}</strong>
-          <span>{song.artist}</span>
-          <small>{song.album}</small>
-        </DeleteSongMeta>
-      </DeletePreview>
-      <DeleteWarning>
-        <strong>Permanent action</strong>
-        <span>This song and its catalog metadata cannot be restored after deletion.</span>
-      </DeleteWarning>
-      {error ? <FormErrors role="alert"><p>{error}</p></FormErrors> : null}
-      <ConfirmActions>
-        <SecondaryAction type="button" onClick={onCancel} disabled={isMutating}>
-          Cancel
-        </SecondaryAction>
-        <DangerAction type="button" onClick={onConfirm} disabled={isMutating}>
-          {isMutating ? "Deleting" : "Delete Song"}
-        </DangerAction>
-      </ConfirmActions>
-    </ConfirmBox>
-  </Overlay>
-);
 
 interface StatsDashboardProps {
   adapters: ReturnType<typeof getStatsAdapters>;
@@ -1334,11 +1302,6 @@ const PrimaryAction = styled(BaseAction)`
 const SecondaryAction = styled(BaseAction)`
   background: #27272a;
   color: #fafafa;
-`;
-
-const DangerAction = styled(BaseAction)`
-  background: #dc2626;
-  color: #ffffff;
 `;
 
 const ArtistPanel = styled.section`
@@ -2108,242 +2071,6 @@ const FloatingAdd = styled.button`
     bottom: 168px;
     width: 48px;
     height: 48px;
-  }
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: auto;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(8px);
-`;
-
-const Dialog = styled.div`
-  width: min(540px, 100%);
-  overflow: hidden;
-  border: 1px solid #27272a;
-  border-radius: 28px;
-  background: #18181b;
-  color: #f4f4f5;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-`;
-
-const ConfirmBox = styled(Dialog)`
-  width: min(460px, 100%);
-  border-color: rgba(248, 113, 113, 0.3);
-  background:
-    radial-gradient(circle at 50% -10%, rgba(239, 68, 68, 0.22), transparent 34%),
-    linear-gradient(180deg, #1f1f23 0%, #141416 100%);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(239, 68, 68, 0.08);
-`;
-
-const DialogHeader = styled.header`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px;
-  border-bottom: 1px solid #27272a;
-
-  h2 {
-    margin: 0;
-    color: #ffffff;
-    font-size: 1.18rem;
-    font-weight: 900;
-    letter-spacing: 0;
-  }
-
-  p {
-    margin: 5px 0 0;
-    color: #a1a1aa;
-    font-size: 0.78rem;
-    font-weight: 650;
-  }
-`;
-
-const ConfirmHeader = styled(DialogHeader)`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  padding: 24px 24px 20px;
-  border-bottom: 0;
-
-  h2 {
-    font-size: 1.28rem;
-  }
-
-  p {
-    max-width: 300px;
-    line-height: 1.45;
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: auto minmax(0, 1fr);
-
-    button {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-    }
-  }
-`;
-
-const DeleteIconBadge = styled.div`
-  width: 54px;
-  height: 54px;
-  border: 1px solid rgba(248, 113, 113, 0.42);
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(180deg, rgba(220, 38, 38, 0.32), rgba(127, 29, 29, 0.42));
-  color: #fecaca;
-  box-shadow: 0 16px 34px rgba(127, 29, 29, 0.32);
-`;
-
-const DeletePreview = styled.div`
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  margin: 0 24px;
-  border: 1px solid rgba(63, 63, 70, 0.78);
-  border-radius: 20px;
-  background: rgba(39, 39, 42, 0.56);
-  padding: 12px;
-`;
-
-const DeleteArtwork = styled.img`
-  width: 68px;
-  height: 68px;
-  border-radius: 16px;
-  object-fit: cover;
-  background: #27272a;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
-`;
-
-const DeleteSongMeta = styled.div`
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-
-  strong,
-  span,
-  small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  strong {
-    color: #ffffff;
-    font-size: 1rem;
-    font-weight: 900;
-  }
-
-  span {
-    color: #e4e4e7;
-    font-size: 0.84rem;
-    font-weight: 800;
-  }
-
-  small {
-    color: #a1a1aa;
-    font-size: 0.72rem;
-    font-weight: 700;
-  }
-`;
-
-const DeleteWarning = styled.div`
-  display: grid;
-  gap: 4px;
-  margin: 14px 24px 0;
-  border-left: 3px solid #ef4444;
-  border-radius: 12px;
-  background: rgba(127, 29, 29, 0.22);
-  padding: 12px 14px;
-
-  strong {
-    color: #fecaca;
-    font-size: 0.75rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  span {
-    color: #d4d4d8;
-    font-size: 0.78rem;
-    font-weight: 650;
-    line-height: 1.45;
-  }
-`;
-
-const CloseButton = styled.button`
-  border: 0;
-  border-radius: 999px;
-  background: #27272a;
-  color: #d4d4d8;
-  padding: 8px;
-
-  &:hover:not(:disabled) {
-    color: #ffffff;
-  }
-`;
-
-const FormErrors = styled.div`
-  margin: 16px 24px 0;
-  border: 1px solid rgba(248, 113, 113, 0.32);
-  border-radius: 14px;
-  background: rgba(127, 29, 29, 0.34);
-  color: #fecaca;
-  padding: 10px 12px;
-  font-size: 0.72rem;
-  font-weight: 750;
-
-  p {
-    margin: 0;
-  }
-`;
-
-const DialogActions = styled.div`
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #27272a;
-`;
-
-const ConfirmActions = styled(DialogActions)`
-  margin-top: 18px;
-  padding: 18px 24px 24px;
-  border-top-color: rgba(63, 63, 70, 0.72);
-
-  > button {
-    min-width: 128px;
-  }
-
-  > button:last-child {
-    background: #ef4444;
-    box-shadow: 0 14px 30px rgba(220, 38, 38, 0.25);
-
-    &:hover:not(:disabled) {
-      background: #dc2626;
-    }
-  }
-
-  @media (max-width: 480px) {
-    flex-direction: column-reverse;
-
-    > button {
-      width: 100%;
-    }
   }
 `;
 
