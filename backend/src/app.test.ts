@@ -5,11 +5,15 @@ import { createApp } from "./app.js";
 import { Song } from "./songs/song.js";
 
 vi.mock("./songs/song.js", () => ({
+  SONG_GENRES: ["Ethio-jazz", "Pop", "Contemporary", "Soul", "Traditional"],
   Song: {
     aggregate: vi.fn(),
     countDocuments: vi.fn(),
+    create: vi.fn(),
     distinct: vi.fn(),
-    find: vi.fn()
+    find: vi.fn(),
+    findByIdAndDelete: vi.fn(),
+    findByIdAndUpdate: vi.fn()
   }
 }));
 
@@ -191,5 +195,130 @@ describe("song statistics endpoint", () => {
         { album: "Mulatu Plays Mulatu", songs: 3 }
       ]
     });
+  });
+});
+
+describe("song mutation endpoints", () => {
+  const now = new Date("2026-01-02T03:04:05.000Z");
+  const songDocument = {
+    _id: new mongoose.Types.ObjectId("64f111111111111111111111"),
+    __v: 0,
+    title: "Ambassel",
+    artist: "Aster Aweke",
+    album: "Kabu",
+    genre: "Pop",
+    artworkUrl: null,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  it("creates a Song with trimmed fields and nullable artwork URL", async () => {
+    vi.mocked(Song.create).mockResolvedValue(songDocument as never);
+
+    const response = await request(createApp())
+      .post("/api/songs")
+      .send({
+        title: "  Ambassel  ",
+        artist: " Aster Aweke ",
+        album: " Kabu ",
+        genre: " Pop ",
+        artworkUrl: ""
+      });
+
+    expect(response.status).toBe(201);
+    expect(Song.create).toHaveBeenCalledWith({
+      title: "Ambassel",
+      artist: "Aster Aweke",
+      album: "Kabu",
+      genre: "Pop",
+      artworkUrl: null
+    });
+    expect(response.body).toMatchObject({
+      id: "64f111111111111111111111",
+      title: "Ambassel",
+      artist: "Aster Aweke",
+      artworkUrl: null
+    });
+  });
+
+  it("rejects missing required fields, overlong fields, and unknown fields", async () => {
+    const response = await request(createApp())
+      .post("/api/songs")
+      .send({
+        title: "",
+        artist: "A".repeat(121),
+        album: "Kabu",
+        genre: "Experimental",
+        duration: 180
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining([
+        "duration is not a supported Song field.",
+        "title is required.",
+        "artist must be 120 characters or fewer.",
+        "genre must be one of: Ethio-jazz, Pop, Contemporary, Soul, Traditional."
+      ])
+    );
+    expect(Song.create).not.toHaveBeenCalled();
+  });
+
+  it("updates a Song by ID", async () => {
+    vi.mocked(Song.findByIdAndUpdate).mockReturnValue(queryChain(songDocument) as never);
+
+    const response = await request(createApp())
+      .put("/api/songs/64f111111111111111111111")
+      .send({
+        title: "Ambassel",
+        artist: "Aster Aweke",
+        album: "Kabu",
+        genre: "Pop",
+        artworkUrl: null
+      });
+
+    expect(response.status).toBe(200);
+    expect(Song.findByIdAndUpdate).toHaveBeenCalledWith(
+      "64f111111111111111111111",
+      {
+        title: "Ambassel",
+        artist: "Aster Aweke",
+        album: "Kabu",
+        genre: "Pop",
+        artworkUrl: null
+      },
+      { new: true, runValidators: true }
+    );
+    expect(response.body.title).toBe("Ambassel");
+  });
+
+  it("returns not found for invalid or missing Song IDs", async () => {
+    const invalidIdResponse = await request(createApp()).delete("/api/songs/not-an-id");
+
+    expect(invalidIdResponse.status).toBe(404);
+    expect(Song.findByIdAndDelete).not.toHaveBeenCalled();
+
+    vi.mocked(Song.findByIdAndUpdate).mockReturnValue(queryChain(null) as never);
+
+    const missingResponse = await request(createApp())
+      .put("/api/songs/64f111111111111111111112")
+      .send({
+        title: "Ambassel",
+        artist: "Aster Aweke",
+        album: "Kabu",
+        genre: "Pop"
+      });
+
+    expect(missingResponse.status).toBe(404);
+  });
+
+  it("deletes a Song with no-content behavior", async () => {
+    vi.mocked(Song.findByIdAndDelete).mockReturnValue(queryChain(songDocument) as never);
+
+    const response = await request(createApp()).delete("/api/songs/64f111111111111111111111");
+
+    expect(response.status).toBe(204);
+    expect(response.text).toBe("");
+    expect(Song.findByIdAndDelete).toHaveBeenCalledWith("64f111111111111111111111");
   });
 });

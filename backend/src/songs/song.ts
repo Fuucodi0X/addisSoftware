@@ -1,10 +1,13 @@
 import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 
+export const SONG_GENRES = ["Ethio-jazz", "Pop", "Contemporary", "Soul", "Traditional"] as const;
+export type SongGenre = (typeof SONG_GENRES)[number];
+
 export interface SongAttrs {
   title: string;
   artist: string;
   album: string;
-  genre: string;
+  genre: SongGenre;
   artworkUrl?: string | null;
 }
 
@@ -15,11 +18,11 @@ export interface SongDocument extends SongAttrs {
 
 const songSchema = new Schema<SongDocument>(
   {
-    title: { type: String, required: true, trim: true },
-    artist: { type: String, required: true, trim: true },
-    album: { type: String, required: true, trim: true },
-    genre: { type: String, required: true, trim: true },
-    artworkUrl: { type: String, default: null, trim: true }
+    title: { type: String, required: true, trim: true, maxlength: 120 },
+    artist: { type: String, required: true, trim: true, maxlength: 120 },
+    album: { type: String, required: true, trim: true, maxlength: 120 },
+    genre: { type: String, required: true, trim: true, enum: SONG_GENRES, maxlength: 80 },
+    artworkUrl: { type: String, default: null, trim: true, maxlength: 2048 }
   },
   {
     timestamps: true
