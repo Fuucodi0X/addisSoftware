@@ -30,7 +30,14 @@ const getPlaceholder = (song: Song) => {
 
 export const App = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { error, items, status, totalItems } = useSelector((state: RootState) => state.songs);
+  const { error, genres, items, limit, page, query, status, totalItems, totalPages } = useSelector(
+    (state: RootState) => state.songs
+  );
+  const isFiltered = Boolean(query.q.trim() || query.genre.trim());
+  const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
+  const endItem = Math.min(page * limit, totalItems);
+  const canGoBack = page > 1 && status !== "loading";
+  const canGoForward = page < totalPages && status !== "loading";
 
   useEffect(() => {
     dispatch(fetchSongsRequested());
@@ -40,8 +47,20 @@ export const App = () => {
     { label: "Songs", value: String(totalItems) },
     { label: "Artists", value: String(new Set(items.map((song) => song.artist)).size) },
     { label: "Albums", value: String(new Set(items.map((song) => song.album)).size) },
-    { label: "Genres", value: String(new Set(items.map((song) => song.genre)).size) }
+    { label: "Genres", value: String(genres.length) }
   ];
+
+  const handleSearchChange = (value: string) => {
+    dispatch(fetchSongsRequested({ q: value, page: 1 }));
+  };
+
+  const handleGenreChange = (value: string) => {
+    dispatch(fetchSongsRequested({ genre: value, page: 1 }));
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    dispatch(fetchSongsRequested({ page: nextPage }));
+  };
 
   return (
     <main className="app-shell">
@@ -80,10 +99,39 @@ export const App = () => {
         </div>
 
         <div className="queue">
-          <div>
-            <p className="eyebrow">Next surface</p>
-            <h2>Song catalogue</h2>
+          <div className="catalog-heading">
+            <div>
+              <p className="eyebrow">Catalog controls</p>
+              <h2>Song catalogue</h2>
+            </div>
+            <p className="result-count" aria-live="polite">
+              {totalItems === 0 ? "No results" : `${startItem}-${endItem} of ${totalItems}`}
+            </p>
           </div>
+
+          <div className="catalog-controls" aria-label="Song catalog filters">
+            <label>
+              <span>Search</span>
+              <input
+                type="search"
+                value={query.q}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder="Title, artist, album, genre"
+              />
+            </label>
+            <label>
+              <span>Genre</span>
+              <select value={query.genre} onChange={(event) => handleGenreChange(event.target.value)}>
+                <option value="">All genres</option>
+                {genres.map((genre) => (
+                  <option value={genre} key={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           <div className="song-table" role="table" aria-label="Persisted Songs">
             <div className="song-row song-row-header" role="row">
               <span role="columnheader">Song</span>
@@ -101,7 +149,11 @@ export const App = () => {
             {status === "failed" ? <div className="table-message error-state">{error}</div> : null}
 
             {status === "succeeded" && items.length === 0 ? (
-              <div className="table-message">No Songs have been seeded yet.</div>
+              <div className="table-message">
+                {isFiltered
+                  ? "No Songs match the current search and genre filters."
+                  : "No Songs have been seeded yet."}
+              </div>
             ) : null}
 
             {items.map((song) => {
@@ -132,6 +184,18 @@ export const App = () => {
                 </article>
               );
             })}
+          </div>
+
+          <div className="pagination" aria-label="Song catalog pagination">
+            <button type="button" onClick={() => handlePageChange(page - 1)} disabled={!canGoBack}>
+              Previous
+            </button>
+            <span>
+              Page {Math.max(page, 1)} of {Math.max(totalPages, 1)}
+            </span>
+            <button type="button" onClick={() => handlePageChange(page + 1)} disabled={!canGoForward}>
+              Next
+            </button>
           </div>
         </div>
       </section>

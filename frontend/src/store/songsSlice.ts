@@ -17,10 +17,19 @@ export interface SongListEnvelope {
   limit: number;
   totalItems: number;
   totalPages: number;
+  genres: string[];
+}
+
+export interface SongQueryParams {
+  q: string;
+  genre: string;
+  page: number;
 }
 
 interface SongsState {
   items: Song[];
+  genres: string[];
+  query: SongQueryParams;
   page: number;
   limit: number;
   totalItems: number;
@@ -31,8 +40,14 @@ interface SongsState {
 
 const initialState: SongsState = {
   items: [],
+  genres: [],
+  query: {
+    q: "",
+    genre: "",
+    page: 1
+  },
   page: 1,
-  limit: 50,
+  limit: 8,
   totalItems: 0,
   totalPages: 0,
   status: "idle",
@@ -43,16 +58,22 @@ const songsSlice = createSlice({
   name: "songs",
   initialState,
   reducers: {
-    fetchSongsRequested(state) {
+    fetchSongsRequested(state, action: PayloadAction<Partial<SongQueryParams> | undefined>) {
+      state.query = {
+        ...state.query,
+        ...action.payload
+      };
       state.status = "loading";
       state.error = null;
     },
     fetchSongsSucceeded(state, action: PayloadAction<SongListEnvelope>) {
       state.items = action.payload.items;
+      state.genres = action.payload.genres;
       state.page = action.payload.page;
       state.limit = action.payload.limit;
       state.totalItems = action.payload.totalItems;
       state.totalPages = action.payload.totalPages;
+      state.query.page = action.payload.page;
       state.status = "succeeded";
     },
     fetchSongsFailed(state, action: PayloadAction<string>) {
