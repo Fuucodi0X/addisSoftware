@@ -6,6 +6,7 @@ import { Song } from "./songs/song.js";
 
 vi.mock("./songs/song.js", () => ({
   Song: {
+    aggregate: vi.fn(),
     countDocuments: vi.fn(),
     distinct: vi.fn(),
     find: vi.fn()
@@ -30,6 +31,7 @@ const queryChain = <T>(value: T) => {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(Song.distinct).mockReturnValue(queryChain(["Ethio-jazz", "Pop"]) as never);
+  vi.mocked(Song.aggregate).mockReturnValue(queryChain([]) as never);
 });
 
 describe("health endpoint", () => {
@@ -134,6 +136,60 @@ describe("song list endpoint", () => {
       totalItems: 0,
       totalPages: 0,
       genres: ["Ethio-jazz", "Pop"]
+    });
+  });
+});
+
+describe("song statistics endpoint", () => {
+  it("returns global Song Library statistics", async () => {
+    vi.mocked(Song.countDocuments).mockReturnValue(queryChain(20) as never);
+    vi.mocked(Song.distinct)
+      .mockReturnValueOnce(queryChain(["Aster Aweke", "Mulatu Astatke"]) as never)
+      .mockReturnValueOnce(queryChain(["Kabu", "Mulatu Plays Mulatu", "Ebo"]) as never)
+      .mockReturnValueOnce(queryChain(["Ethio-jazz", "Pop"]) as never);
+    vi.mocked(Song.aggregate)
+      .mockReturnValueOnce(
+        queryChain([
+          { _id: "Pop", songs: 8 },
+          { _id: "Ethio-jazz", songs: 6 }
+        ]) as never
+      )
+      .mockReturnValueOnce(
+        queryChain([
+          { _id: "Aster Aweke", songs: 7, albums: 3 },
+          { _id: "Mulatu Astatke", songs: 4, albums: 2 }
+        ]) as never
+      )
+      .mockReturnValueOnce(
+        queryChain([
+          { _id: "Kabu", songs: 3 },
+          { _id: "Mulatu Plays Mulatu", songs: 3 }
+        ]) as never
+      );
+
+    const response = await request(createApp()).get("/api/songs/stats");
+
+    expect(response.status).toBe(200);
+    expect(Song.countDocuments).toHaveBeenCalledWith({});
+    expect(response.body).toEqual({
+      totals: {
+        songs: 20,
+        artists: 2,
+        albums: 3,
+        genres: 2
+      },
+      songsByGenre: [
+        { genre: "Pop", songs: 8 },
+        { genre: "Ethio-jazz", songs: 6 }
+      ],
+      artists: [
+        { artist: "Aster Aweke", songs: 7, albums: 3 },
+        { artist: "Mulatu Astatke", songs: 4, albums: 2 }
+      ],
+      songsByAlbum: [
+        { album: "Kabu", songs: 3 },
+        { album: "Mulatu Plays Mulatu", songs: 3 }
+      ]
     });
   });
 });

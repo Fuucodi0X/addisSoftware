@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchSongsRequested, type Song } from "./store/songsSlice";
+import { fetchSongsRequested, fetchStatsRequested, type Song } from "./store/songsSlice";
 import type { AppDispatch, RootState } from "./store/store";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
@@ -30,24 +30,37 @@ const getPlaceholder = (song: Song) => {
 
 export const App = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { error, genres, items, limit, page, query, status, totalItems, totalPages } = useSelector(
-    (state: RootState) => state.songs
-  );
+  const {
+    error,
+    genres,
+    items,
+    limit,
+    page,
+    query,
+    stats,
+    statsError,
+    statsStatus,
+    status,
+    totalItems,
+    totalPages
+  } = useSelector((state: RootState) => state.songs);
   const isFiltered = Boolean(query.q.trim() || query.genre.trim());
   const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const endItem = Math.min(page * limit, totalItems);
   const canGoBack = page > 1 && status !== "loading";
   const canGoForward = page < totalPages && status !== "loading";
+  const maxGenreSongs = Math.max(...stats.songsByGenre.map((item) => item.songs), 1);
 
   useEffect(() => {
     dispatch(fetchSongsRequested());
+    dispatch(fetchStatsRequested());
   }, [dispatch]);
 
   const shellStats = [
-    { label: "Songs", value: String(totalItems) },
-    { label: "Artists", value: String(new Set(items.map((song) => song.artist)).size) },
-    { label: "Albums", value: String(new Set(items.map((song) => song.album)).size) },
-    { label: "Genres", value: String(genres.length) }
+    { label: "Songs", value: String(stats.totals.songs) },
+    { label: "Artists", value: String(stats.totals.artists) },
+    { label: "Albums", value: String(stats.totals.albums) },
+    { label: "Genres", value: String(stats.totals.genres) }
   ];
 
   const handleSearchChange = (value: string) => {
@@ -97,6 +110,76 @@ export const App = () => {
             </article>
           ))}
         </div>
+
+        <section className="stats-dashboard" aria-labelledby="stats-title">
+          <div className="stats-heading">
+            <div>
+              <p className="eyebrow">Global statistics</p>
+              <h2 id="stats-title">Library dashboard</h2>
+            </div>
+            <span className="scope-pill">All Songs</span>
+          </div>
+
+          {statsStatus === "loading" ? (
+            <p className="stats-message" role="status">
+              Loading Song Library statistics
+            </p>
+          ) : null}
+
+          {statsStatus === "failed" ? <p className="stats-message error-state">{statsError}</p> : null}
+
+          {statsStatus !== "failed" ? (
+            <div className="stats-panels">
+              <section className="breakdown-panel" aria-labelledby="genre-breakdown-title">
+                <h3 id="genre-breakdown-title">Songs by Genre</h3>
+                <div className="bar-list">
+                  {stats.songsByGenre.length === 0 ? (
+                    <p className="empty-stat">No genre statistics yet.</p>
+                  ) : null}
+                  {stats.songsByGenre.map((item) => (
+                    <div className="bar-row" key={item.genre}>
+                      <span>{item.genre}</span>
+                      <div className="bar-track" aria-hidden="true">
+                        <span style={{ width: `${Math.max((item.songs / maxGenreSongs) * 100, 6)}%` }} />
+                      </div>
+                      <strong>{item.songs}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="breakdown-panel" aria-labelledby="artist-breakdown-title">
+                <h3 id="artist-breakdown-title">Artists</h3>
+                <div className="compact-list">
+                  {stats.artists.length === 0 ? <p className="empty-stat">No artist statistics yet.</p> : null}
+                  {stats.artists.slice(0, 6).map((item) => (
+                    <div className="compact-row" key={item.artist}>
+                      <span>{item.artist}</span>
+                      <strong>
+                        {item.songs} Songs / {item.albums} Albums
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="breakdown-panel" aria-labelledby="album-breakdown-title">
+                <h3 id="album-breakdown-title">Songs by Album</h3>
+                <div className="compact-list">
+                  {stats.songsByAlbum.length === 0 ? (
+                    <p className="empty-stat">No album statistics yet.</p>
+                  ) : null}
+                  {stats.songsByAlbum.slice(0, 6).map((item) => (
+                    <div className="compact-row" key={item.album}>
+                      <span>{item.album}</span>
+                      <strong>{item.songs} Songs</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : null}
+        </section>
 
         <div className="queue">
           <div className="catalog-heading">

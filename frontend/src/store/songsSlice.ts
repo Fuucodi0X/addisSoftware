@@ -20,6 +20,28 @@ export interface SongListEnvelope {
   genres: string[];
 }
 
+export interface SongLibraryStats {
+  totals: {
+    songs: number;
+    artists: number;
+    albums: number;
+    genres: number;
+  };
+  songsByGenre: Array<{
+    genre: string;
+    songs: number;
+  }>;
+  artists: Array<{
+    artist: string;
+    songs: number;
+    albums: number;
+  }>;
+  songsByAlbum: Array<{
+    album: string;
+    songs: number;
+  }>;
+}
+
 export interface SongQueryParams {
   q: string;
   genre: string;
@@ -36,6 +58,9 @@ interface SongsState {
   totalPages: number;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  stats: SongLibraryStats;
+  statsStatus: "idle" | "loading" | "succeeded" | "failed";
+  statsError: string | null;
 }
 
 const initialState: SongsState = {
@@ -51,7 +76,20 @@ const initialState: SongsState = {
   totalItems: 0,
   totalPages: 0,
   status: "idle",
-  error: null
+  error: null,
+  stats: {
+    totals: {
+      songs: 0,
+      artists: 0,
+      albums: 0,
+      genres: 0
+    },
+    songsByGenre: [],
+    artists: [],
+    songsByAlbum: []
+  },
+  statsStatus: "idle",
+  statsError: null
 };
 
 const songsSlice = createSlice({
@@ -79,9 +117,28 @@ const songsSlice = createSlice({
     fetchSongsFailed(state, action: PayloadAction<string>) {
       state.status = "failed";
       state.error = action.payload;
+    },
+    fetchStatsRequested(state) {
+      state.statsStatus = "loading";
+      state.statsError = null;
+    },
+    fetchStatsSucceeded(state, action: PayloadAction<SongLibraryStats>) {
+      state.stats = action.payload;
+      state.statsStatus = "succeeded";
+    },
+    fetchStatsFailed(state, action: PayloadAction<string>) {
+      state.statsStatus = "failed";
+      state.statsError = action.payload;
     }
   }
 });
 
-export const { fetchSongsFailed, fetchSongsRequested, fetchSongsSucceeded } = songsSlice.actions;
+export const {
+  fetchSongsFailed,
+  fetchSongsRequested,
+  fetchSongsSucceeded,
+  fetchStatsFailed,
+  fetchStatsRequested,
+  fetchStatsSucceeded
+} = songsSlice.actions;
 export const songsReducer = songsSlice.reducer;

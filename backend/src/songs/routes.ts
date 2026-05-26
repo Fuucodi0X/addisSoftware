@@ -20,6 +20,9 @@ const getTrimmedQueryValue = (value: unknown) => (typeof value === "string" ? va
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const normalizeGroupName = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.trim() ? value.trim() : fallback;
+
 const buildSongFilter = (query: unknown, genre: unknown): FilterQuery<SongDocument> => {
   const searchTerm = getTrimmedQueryValue(query);
   const genreFilter = getTrimmedQueryValue(genre);
@@ -54,6 +57,61 @@ const buildSongFilter = (query: unknown, genre: unknown): FilterQuery<SongDocume
 
 export const createSongRouter = () => {
   const router = Router();
+
+  router.get("/stats", async (_request, response, next) => {
+    try {
+      const [totalSongs, artists, albums, genres, songsByGenre, artistsSummary, songsByAlbum] =
+        await Promise.all([
+          Song.countDocuments({}).exec(),
+          Song.distinct("artist").exec(),
+          Song.distinct("album").exec(),
+          Song.distinct("genre").exec(),
+          Song.aggregate<{ _id: string | null; songs: number }>([
+            { $group: { _id: "$genre", songs: { $sum: 1 } } },
+            { $sort: { songs: -1, _id: 1 } }
+          ]).exec(),
+          Song.aggregate<{ _id: string | null; songs: number; albums: number }>([
+            {
+              $group: {
+                _id: "$artist",
+                songs: { $sum: 1 },
+                albumNames: { $addToSet: "$album" }
+              }
+            },
+            { $project: { songs: 1, albums: { $size: "$albumNames" } } },
+            { $sort: { songs: -1, _id: 1 } }
+          ]).exec(),
+          Song.aggregate<{ _id: string | null; songs: number }>([
+            { $group: { _id: "$album", songs: { $sum: 1 } } },
+            { $sort: { songs: -1, _id: 1 } }
+          ]).exec()
+        ]);
+
+      response.status(200).json({
+        totals: {
+          songs: totalSongs,
+          artists: artists.length,
+          albums: albums.length,
+          genres: genres.length
+        },
+        songsByGenre: songsByGenre.map((item) => ({
+          genre: normalizeGroupName(item._id, "Unknown genre"),
+          songs: item.songs
+        })),
+        artists: artistsSummary.map((item) => ({
+          artist: normalizeGroupName(item._id, "Unknown artist"),
+          songs: item.songs,
+          albums: item.albums
+        })),
+        songsByAlbum: songsByAlbum.map((item) => ({
+          album: normalizeGroupName(item._id, "Unknown album"),
+          songs: item.songs
+        }))
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   router.get("/", async (request, response, next) => {
     try {

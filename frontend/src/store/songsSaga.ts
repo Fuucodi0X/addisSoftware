@@ -3,6 +3,10 @@ import {
   fetchSongsFailed,
   fetchSongsRequested,
   fetchSongsSucceeded,
+  fetchStatsFailed,
+  fetchStatsRequested,
+  fetchStatsSucceeded,
+  type SongLibraryStats,
   type SongListEnvelope,
   type SongQueryParams
 } from "./songsSlice";
@@ -34,6 +38,16 @@ const fetchSongs = async (query: SongQueryParams): Promise<SongListEnvelope> => 
   return (await response.json()) as SongListEnvelope;
 };
 
+const fetchSongStats = async (): Promise<SongLibraryStats> => {
+  const response = await fetch(`${apiBaseUrl}/api/songs/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Song stats API returned ${response.status}`);
+  }
+
+  return (await response.json()) as SongLibraryStats;
+};
+
 function* fetchSongsWorker() {
   try {
     const query: SongQueryParams = yield select((state: RootState) => state.songs.query);
@@ -45,6 +59,17 @@ function* fetchSongsWorker() {
   }
 }
 
+function* fetchStatsWorker() {
+  try {
+    const stats: SongLibraryStats = yield call(fetchSongStats);
+    yield put(fetchStatsSucceeded(stats));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load Song statistics";
+    yield put(fetchStatsFailed(message));
+  }
+}
+
 export function* songsSaga() {
   yield takeLatest(fetchSongsRequested.type, fetchSongsWorker);
+  yield takeLatest(fetchStatsRequested.type, fetchStatsWorker);
 }
