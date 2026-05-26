@@ -64,6 +64,7 @@ describe("song list endpoint", () => {
           artist: "Mulatu Astatke",
           album: "Ethiopiques, Vol. 4",
           genre: "Ethio-jazz",
+          duration: "4:08",
           artworkUrl: null,
           createdAt: now,
           updatedAt: now
@@ -83,6 +84,7 @@ describe("song list endpoint", () => {
           artist: "Mulatu Astatke",
           album: "Ethiopiques, Vol. 4",
           genre: "Ethio-jazz",
+          duration: "4:08",
           artworkUrl: null,
           createdAt: now.toISOString(),
           updatedAt: now.toISOString()
@@ -207,6 +209,7 @@ describe("song mutation endpoints", () => {
     artist: "Aster Aweke",
     album: "Kabu",
     genre: "Pop",
+    duration: "3:45",
     artworkUrl: null,
     createdAt: now,
     updatedAt: now
@@ -222,6 +225,7 @@ describe("song mutation endpoints", () => {
         artist: " Aster Aweke ",
         album: " Kabu ",
         genre: " Pop ",
+        duration: " 3:45 ",
         artworkUrl: ""
       });
 
@@ -231,17 +235,19 @@ describe("song mutation endpoints", () => {
       artist: "Aster Aweke",
       album: "Kabu",
       genre: "Pop",
+      duration: "3:45",
       artworkUrl: null
     });
     expect(response.body).toMatchObject({
       id: "64f111111111111111111111",
       title: "Ambassel",
       artist: "Aster Aweke",
-      artworkUrl: null
+      artworkUrl: null,
+      duration: "3:45"
     });
   });
 
-  it("rejects missing required fields, overlong fields, and unknown fields", async () => {
+  it("rejects missing required fields, overlong fields, invalid duration, and unknown fields", async () => {
     const response = await request(createApp())
       .post("/api/songs")
       .send({
@@ -249,16 +255,18 @@ describe("song mutation endpoints", () => {
         artist: "A".repeat(121),
         album: "Kabu",
         genre: "Experimental",
-        duration: 180
+        duration: "3:99",
+        audioUrl: "https://example.com/song.mp3"
       });
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual(
       expect.arrayContaining([
-        "duration is not a supported Song field.",
+        "audioUrl is not a supported Song field.",
         "title is required.",
         "artist must be 120 characters or fewer.",
-        "genre must be one of: Ethio-jazz, Pop, Contemporary, Soul, Traditional."
+        "genre must be one of: Ethio-jazz, Pop, Contemporary, Soul, Traditional.",
+        "duration must use M:SS or MM:SS format."
       ])
     );
     expect(Song.create).not.toHaveBeenCalled();
@@ -274,6 +282,7 @@ describe("song mutation endpoints", () => {
         artist: "Aster Aweke",
         album: "Kabu",
         genre: "Pop",
+        duration: "3:45",
         artworkUrl: null
       });
 
@@ -285,6 +294,7 @@ describe("song mutation endpoints", () => {
         artist: "Aster Aweke",
         album: "Kabu",
         genre: "Pop",
+        duration: "3:45",
         artworkUrl: null
       },
       { new: true, runValidators: true }
@@ -306,7 +316,8 @@ describe("song mutation endpoints", () => {
         title: "Ambassel",
         artist: "Aster Aweke",
         album: "Kabu",
-        genre: "Pop"
+        genre: "Pop",
+        duration: "3:45"
       });
 
     expect(missingResponse.status).toBe(404);

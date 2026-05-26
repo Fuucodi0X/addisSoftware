@@ -8,6 +8,7 @@ export interface SongAttrs {
   artist: string;
   album: string;
   genre: SongGenre;
+  duration: string;
   artworkUrl?: string | null;
 }
 
@@ -22,6 +23,7 @@ const songSchema = new Schema<SongDocument>(
     artist: { type: String, required: true, trim: true, maxlength: 120 },
     album: { type: String, required: true, trim: true, maxlength: 120 },
     genre: { type: String, required: true, trim: true, enum: SONG_GENRES, maxlength: 80 },
+    duration: { type: String, required: true, trim: true, match: /^\d{1,2}:[0-5]\d$/ },
     artworkUrl: { type: String, default: null, trim: true, maxlength: 2048 }
   },
   {

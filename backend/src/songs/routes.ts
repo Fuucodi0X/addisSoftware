@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import mongoose from "mongoose";
 import type { FilterQuery } from "mongoose";
 import { toSongResponse } from "./mapper.js";
@@ -7,15 +7,18 @@ import { SONG_GENRES, Song, type SongAttrs, type SongDocument, type SongGenre } 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
-const SONG_FIELDS = ["title", "artist", "album", "genre", "artworkUrl"] as const;
-const REQUIRED_SONG_FIELDS = ["title", "artist", "album", "genre"] as const;
+const SONG_FIELDS = ["title", "artist", "album", "genre", "duration", "artworkUrl"] as const;
+const REQUIRED_SONG_FIELDS = ["title", "artist", "album", "genre", "duration"] as const;
 const SONG_FIELD_LIMITS = {
   title: 120,
   artist: 120,
   album: 120,
   genre: 80,
+  duration: 5,
   artworkUrl: 2048
 } as const;
+
+const DURATION_PATTERN = /^\d{1,2}:[0-5]\d$/;
 
 const parsePositiveInt = (value: unknown, fallback: number) => {
   if (typeof value !== "string") {
@@ -76,6 +79,13 @@ const validateSongPayload = (payload: unknown): ValidationResult => {
       }
 
       attrs.genre = trimmed;
+    } else if (field === "duration") {
+      if (!DURATION_PATTERN.test(trimmed)) {
+        errors.push("duration must use M:SS or MM:SS format.");
+        continue;
+      }
+
+      attrs.duration = trimmed;
     } else {
       attrs[field] = trimmed;
     }
@@ -254,7 +264,7 @@ export const createSongRouter = () => {
     }
   });
 
-  router.put("/:id", async (request, response, next) => {
+  const updateSong = async (request: Request<{ id: string }>, response: Response, next: NextFunction) => {
     try {
       const { id } = request.params;
 
@@ -286,7 +296,10 @@ export const createSongRouter = () => {
 
       next(error);
     }
-  });
+  };
+
+  router.put("/:id", updateSong);
+  router.patch("/:id", updateSong);
 
   router.delete("/:id", async (request, response, next) => {
     try {

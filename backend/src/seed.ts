@@ -13,7 +13,9 @@ const artwork = {
     "https://coverartarchive.org/release/af240304-3721-4f89-9cba-14e9676bcf7d/front-250"
 } as const;
 
-const seedSongs: SongAttrs[] = [
+const seedDurations = ["3:42", "4:08", "2:57", "5:14", "3:35"] as const;
+
+const seedSongMetadata: Array<Omit<SongAttrs, "duration"> & { duration?: string }> = [
   {
     title: "Tizita",
     artist: "Tilahun Gessesse",
@@ -155,6 +157,11 @@ const seedSongs: SongAttrs[] = [
     artworkUrl: null
   }
 ];
+
+const seedSongs: SongAttrs[] = seedSongMetadata.map((song, index) => ({
+  ...song,
+  duration: song.duration ?? seedDurations[index % seedDurations.length]
+}));
 
 const assertSafeSeedTarget = () => {
   if (config.nodeEnv === "production") {

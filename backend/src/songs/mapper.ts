@@ -6,6 +6,7 @@ export interface SongResponse {
   artist: string;
   album: string;
   genre: string;
+  duration: string;
   artworkUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -17,6 +18,7 @@ export const toSongResponse = (song: SongRecord): SongResponse => ({
   artist: song.artist,
   album: song.album,
   genre: song.genre,
+  duration: song.duration,
   artworkUrl: song.artworkUrl ?? null,
   createdAt: song.createdAt.toISOString(),
   updatedAt: song.updatedAt.toISOString()
