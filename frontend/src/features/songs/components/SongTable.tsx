@@ -62,7 +62,7 @@ export const SongTable = ({
                 <Button variant="ghost" onClick={() => onEdit(song)}>
                   Edit
                 </Button>
-                <Button variant="ghost" className="danger-link" onClick={() => onDelete(song)}>
+                <Button variant="ghost" tone="danger" onClick={() => onDelete(song)}>
                   Delete
                 </Button>
               </div>

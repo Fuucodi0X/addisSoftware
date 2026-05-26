@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Button } from "./Button";
+import { X } from "lucide-react";
+import { IconButton } from "./Button";
 
 interface ModalProps {
   title: string;
@@ -14,9 +15,9 @@ export const Modal = ({ title, children, onClose, labelledBy, size = "form" }: M
     <section className={`modal-panel modal-${size}`} role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
       <div className="modal-heading">
         <h2 id={labelledBy}>{title}</h2>
-        <Button className="icon-button" variant="ghost" onClick={onClose} aria-label={`Close ${title}`}>
-          x
-        </Button>
+        <IconButton size="sm" variant="ghost" onClick={onClose} aria-label={`Close ${title}`}>
+          <X aria-hidden="true" />
+        </IconButton>
       </div>
       {children}
     </section>
