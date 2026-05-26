@@ -174,9 +174,12 @@ export const App = () => {
   const [activeTab, setActiveTab] = useState<AppTab>("home");
   const [songModal, setSongModal] = useState<SongModalState | null>(null);
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
+  const [focusedSong, setFocusedSong] = useState<Song | null>(null);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<SongFormValues>(emptySongForm);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [hasLoadedSongs, setHasLoadedSongs] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
@@ -205,8 +208,8 @@ export const App = () => {
   const isMutating = mutationStatus === "loading";
   const isFiltered = Boolean(query.q.trim() || query.genre.trim());
   const activeSong = useMemo(
-    () => items.find((song) => song.id === selectedSongId) ?? items[0] ?? null,
-    [items, selectedSongId]
+    () => items.find((song) => song.id === selectedSongId) ?? focusedSong ?? items[0] ?? null,
+    [focusedSong, items, selectedSongId]
   );
   const statsView = useMemo(() => getStatsAdapters(stats), [stats]);
   const formTitle = songModal?.mode === "edit" ? "Edit Song Metadata" : "Add Song to Catalog";
@@ -217,11 +220,34 @@ export const App = () => {
   );
   const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const endItem = Math.min(page * limit, totalItems);
+  const isInitialSongsLoading = status === "loading" && !hasLoadedSongs;
 
   useEffect(() => {
     dispatch(fetchSongsRequested());
     dispatch(fetchStatsRequested());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (status === "succeeded" || status === "failed") {
+      setHasLoadedSongs(true);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    setSearchText(query.q);
+  }, [query.q]);
+
+  useEffect(() => {
+    if (searchText === query.q) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      dispatch(fetchSongsRequested({ q: searchText, page: 1 }));
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [dispatch, query.q, searchText]);
 
   useEffect(() => {
     if (mutationStatus === "succeeded") {
@@ -236,6 +262,18 @@ export const App = () => {
   useEffect(() => {
     setPlaybackTime(0);
   }, [activeSong?.id]);
+
+  useEffect(() => {
+    if (!selectedSongId) {
+      return;
+    }
+
+    const selectedSong = items.find((song) => song.id === selectedSongId);
+
+    if (selectedSong) {
+      setFocusedSong(selectedSong);
+    }
+  }, [items, selectedSongId]);
 
   useEffect(() => {
     if (!activeSong || !isPlaying) {
@@ -255,6 +293,7 @@ export const App = () => {
           const nextSong = items[currentIndex + 1] ?? items[0];
 
           if (nextSong) {
+            setFocusedSong(nextSong);
             setSelectedSongId(nextSong.id);
           }
 
@@ -269,6 +308,7 @@ export const App = () => {
   }, [activeSong, isPlaying, isRepeat, items]);
 
   const selectSong = (song: Song) => {
+    setFocusedSong(song);
     setSelectedSongId(song.id);
     setIsPlaying(true);
   };
@@ -280,6 +320,7 @@ export const App = () => {
 
     if (isShuffle) {
       const nextIndex = Math.floor(Math.random() * items.length);
+      setFocusedSong(items[nextIndex]);
       setSelectedSongId(items[nextIndex].id);
       setPlaybackTime(0);
       return;
@@ -287,6 +328,7 @@ export const App = () => {
 
     const currentIndex = activeSong ? items.findIndex((song) => song.id === activeSong.id) : 0;
     const nextIndex = (currentIndex + direction + items.length) % items.length;
+    setFocusedSong(items[nextIndex]);
     setSelectedSongId(items[nextIndex].id);
     setPlaybackTime(0);
   };
@@ -352,6 +394,7 @@ export const App = () => {
 
     if (songToDelete.id === selectedSongId) {
       setSelectedSongId(null);
+      setFocusedSong(null);
       setIsPlaying(false);
     }
 
@@ -359,7 +402,7 @@ export const App = () => {
   };
 
   const handleSearchChange = (value: string) => {
-    dispatch(fetchSongsRequested({ q: value, page: 1 }));
+    setSearchText(value);
   };
 
   const handleGenreChange = (genre: string) => {
@@ -404,7 +447,7 @@ export const App = () => {
 
           <MainPanel id="main-content-panel">
             <ScrollPanel id="main-scroll-view" ref={scrollRef}>
-              {status === "loading" && items.length === 0 ? (
+              {isInitialSongsLoading ? (
                 <LoadingBlock>
                   <Spinner />
                   <p>Retrieving Song Library records...</p>
@@ -502,10 +545,21 @@ export const App = () => {
                           <input
                             id="catalog-search-input"
                             type="search"
-                            value={query.q}
+                            aria-label="Search Songs"
+                            value={searchText}
                             onChange={(event) => handleSearchChange(event.target.value)}
                             placeholder="Search Songs..."
                           />
+                          {searchText ? (
+                            <ClearSearchButton
+                              type="button"
+                              aria-label="Clear search"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleSearchChange("")}
+                            >
+                              <X size={13} />
+                            </ClearSearchButton>
+                          ) : null}
                         </SearchShell>
                         <Divider />
                         <GenreControls>
@@ -577,6 +631,11 @@ export const App = () => {
                                       <TitleText>
                                         <strong>{song.title}</strong>
                                         <span>{song.album}</span>
+                                        <MobileMetadata>
+                                          {song.album}
+                                          <MetadataDot aria-hidden="true">•</MetadataDot>
+                                          {song.duration}
+                                        </MobileMetadata>
                                       </TitleText>
                                     </TitleCell>
                                   </td>
@@ -1675,8 +1734,31 @@ const SearchShell = styled.label`
     font-weight: 750;
   }
 
+  input::-webkit-search-cancel-button {
+    display: none;
+  }
+
   @media (max-width: 760px) {
     width: 100%;
+  }
+`;
+
+const ClearSearchButton = styled.button`
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: #e4e4e7;
+  color: #52525b;
+  padding: 0;
+
+  &:hover {
+    background: #d4d4d8;
+    color: #18181b;
   }
 `;
 
@@ -1769,7 +1851,9 @@ const SongTable = styled.table`
     th:nth-of-type(2),
     td:nth-of-type(2),
     th:nth-of-type(3),
-    td:nth-of-type(3) {
+    td:nth-of-type(3),
+    th:nth-of-type(4),
+    td:nth-of-type(4) {
       display: none;
     }
 
@@ -1877,7 +1961,7 @@ const TitleText = styled.div`
     white-space: nowrap;
   }
 
-  span {
+  > span {
     display: block;
     max-width: min(230px, 42vw);
     overflow: hidden;
@@ -1886,6 +1970,12 @@ const TitleText = styled.div`
     font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  @media (max-width: 760px) {
+    > span {
+      display: none;
+    }
   }
 `;
 
@@ -1906,6 +1996,33 @@ const DurationText = styled.span`
   font-family: "JetBrains Mono", monospace;
   font-size: 0.72rem;
   font-weight: 900;
+`;
+
+const MobileMetadata = styled.small`
+  display: none;
+  align-items: center;
+  gap: 5px;
+  max-width: min(230px, 42vw);
+  overflow: hidden;
+  color: #a1a1aa;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: 760px) {
+    display: flex;
+  }
+`;
+
+const MetadataDot = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8d8d94;
+  font-size: 0.8em;
+  font-weight: 950;
+  line-height: 1;
 `;
 
 const RowActions = styled.div`
@@ -2624,6 +2741,7 @@ const StatsTopBar = styled.header`
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: start;
   gap: 34px;
 
   @media (max-width: 980px) {
@@ -2633,6 +2751,7 @@ const StatsGrid = styled.div`
 
 const StatsOverview = styled.section`
   display: grid;
+  align-content: start;
   gap: 24px;
 `;
 

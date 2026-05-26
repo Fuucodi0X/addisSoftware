@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { songsReducer } from "./store/songsSlice";
+import { fetchSongsRequested, songsReducer } from "./store/songsSlice";
 import type { RootState } from "./store/store";
 
 const appState = (overrides?: Partial<RootState["songs"]>): RootState["songs"] => ({
@@ -74,6 +74,8 @@ const renderApp = (preloadedState?: { songs: RootState["songs"] }) => {
       <App />
     </Provider>
   );
+
+  return { store };
 };
 
 describe("App", () => {
@@ -109,5 +111,132 @@ describe("App", () => {
     expect(within(dialog).getByText("Tizita")).toBeTruthy();
     expect(within(dialog).getByText("Permanent action")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Song Library" })).toBeTruthy();
+  });
+
+  it("debounces search requests while keeping the search input focused", () => {
+    vi.useFakeTimers();
+
+    try {
+      const { store } = renderApp({ songs: appState() });
+      const dispatchSpy = vi.spyOn(store, "dispatch");
+      const searchInput = screen.getByRole("searchbox") as HTMLInputElement;
+
+      dispatchSpy.mockClear();
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: "t" } });
+      fireEvent.change(searchInput, { target: { value: "ti" } });
+      fireEvent.change(searchInput, { target: { value: "tiz" } });
+
+      expect(document.activeElement).toBe(searchInput);
+      expect(dispatchSpy).not.toHaveBeenCalledWith(fetchSongsRequested({ q: "tiz", page: 1 }));
+
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
+
+      const searchRequests = dispatchSpy.mock.calls.filter(
+        ([action]) =>
+          action.type === fetchSongsRequested.type &&
+          (action.payload as { q?: string } | undefined)?.q !== undefined
+      );
+
+      expect(searchRequests).toHaveLength(1);
+      expect(dispatchSpy).toHaveBeenCalledWith(fetchSongsRequested({ q: "tiz", page: 1 }));
+      expect(document.activeElement).toBe(searchInput);
+
+      dispatchSpy.mockClear();
+      fireEvent.mouseDown(screen.getByRole("button", { name: "Clear search" }));
+      fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+
+      expect(searchInput.value).toBe("");
+      expect(document.activeElement).toBe(searchInput);
+      expect(dispatchSpy).not.toHaveBeenCalledWith(fetchSongsRequested({ q: "", page: 1 }));
+
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
+
+      expect(dispatchSpy).toHaveBeenCalledWith(fetchSongsRequested({ q: "", page: 1 }));
+      expect(document.activeElement).toBe(searchInput);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the catalog controls mounted when clearing an empty search result", () => {
+    vi.useFakeTimers();
+
+    try {
+      const { store } = renderApp({
+        songs: appState({
+          items: [],
+          query: {
+            q: "missing",
+            genre: "",
+            page: 1
+          },
+          totalItems: 0,
+          totalPages: 0
+        })
+      });
+      const dispatchSpy = vi.spyOn(store, "dispatch");
+      const searchInput = screen.getByRole("searchbox") as HTMLInputElement;
+
+      act(() => {
+        store.dispatch({
+          type: "songs/fetchSongsSucceeded",
+          payload: {
+            items: [],
+            genres: ["Ethio-jazz", "Soul"],
+            page: 1,
+            limit: 8,
+            totalItems: 0,
+            totalPages: 0
+          }
+        });
+      });
+
+      dispatchSpy.mockClear();
+      searchInput.focus();
+      fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
+
+      expect(screen.getByRole("searchbox")).toBe(searchInput);
+      expect(screen.getByRole("heading", { name: "Song Catalog" })).toBeTruthy();
+      expect(screen.queryByText("Retrieving Song Library records...")).toBeNull();
+      expect(document.activeElement).toBe(searchInput);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the last selected Song in the footer when search has no results", () => {
+    const { store } = renderApp({ songs: appState() });
+
+    fireEvent.click(screen.getAllByRole("row")[2]);
+
+    act(() => {
+      store.dispatch({
+        type: "songs/fetchSongsSucceeded",
+        payload: {
+          items: [],
+          genres: ["Ethio-jazz", "Soul"],
+          page: 1,
+          limit: 8,
+          totalItems: 0,
+          totalPages: 0
+        }
+      });
+    });
+
+    const footer = document.getElementById("playback-footer-player") as HTMLElement | null;
+
+    expect(footer).toBeTruthy();
+    expect(within(footer as HTMLElement).getByText("Yene Habesha")).toBeTruthy();
+    expect(within(footer as HTMLElement).getByText("Aster Aweke - Soul")).toBeTruthy();
+    expect(within(footer as HTMLElement).queryByText("Select any Song from your Library to focus it.")).toBeNull();
   });
 });
