@@ -4,11 +4,9 @@ import {
   AlertCircle,
   Award,
   BarChart2,
-  Check,
   Disc,
   Filter,
   Heart,
-  Image,
   Layers,
   Music,
   Pause,
@@ -24,11 +22,11 @@ import {
   User,
   Volume2,
   X,
-  Edit,
-  Clock
+  Edit
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { SongFormModal } from "./features/songs/components/SongFormModal";
 import {
   clearSongMutationState,
   createSongRequested,
@@ -794,9 +792,11 @@ export const App = () => {
       </Shell>
 
       {songModal ? (
-        <SongFormDialog
+        <SongFormModal
           actionLabel={actionLabel}
+          artworkPresets={artworkPresets}
           errors={modalErrors}
+          fallbackArtwork={fallbackArtwork}
           isMutating={isMutating}
           onChange={(field, value) => setFormValues((current) => ({ ...current, [field]: value }))}
           onClose={closeSongModal}
@@ -818,166 +818,6 @@ export const App = () => {
     </>
   );
 };
-
-interface SongFormDialogProps {
-  actionLabel: string;
-  errors: string[];
-  isMutating: boolean;
-  onChange: (field: keyof SongFormValues, value: string) => void;
-  onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  title: string;
-  values: SongFormValues;
-}
-
-const SongFormDialog = ({
-  actionLabel,
-  errors,
-  isMutating,
-  onChange,
-  onClose,
-  onSubmit,
-  title,
-  values
-}: SongFormDialogProps) => (
-  <Overlay id="song-form-overlay">
-    <Dialog id="song-form-container" role="dialog" aria-modal="true" aria-labelledby="song-form-title">
-      <DialogHeader>
-        <div>
-          <h2 id="song-form-title">{title}</h2>
-          <p>Maintain required Song metadata for the central catalogue.</p>
-        </div>
-        <CloseButton id="close-form-btn" type="button" onClick={onClose} disabled={isMutating} aria-label="Close form">
-          <X size={20} />
-        </CloseButton>
-      </DialogHeader>
-
-      {errors.length > 0 ? (
-        <FormErrors role="alert">
-          {errors.map((error) => (
-            <p key={error}>{error}</p>
-          ))}
-        </FormErrors>
-      ) : null}
-
-      <Form onSubmit={onSubmit}>
-        <CoverField>
-          <FieldLabel>
-            <Image size={15} /> Artwork URL
-          </FieldLabel>
-          <CoverInputRow>
-            <ArtworkLarge src={values.artworkUrl || fallbackArtwork} alt="Artwork preview" referrerPolicy="no-referrer" />
-            <div>
-              <Input
-                id="cover-url-input"
-                value={values.artworkUrl}
-                onChange={(event) => onChange("artworkUrl", event.target.value)}
-                placeholder="Paste artwork URL..."
-                inputMode="url"
-              />
-              <PresetRow>
-                <span>Presets:</span>
-                {artworkPresets.map((preset, index) => (
-                  <PresetButton
-                    id={`cover-preset-${index}`}
-                    key={preset}
-                    type="button"
-                    $active={values.artworkUrl === preset}
-                    onClick={() => onChange("artworkUrl", preset)}
-                  >
-                    <img src={preset} alt="" referrerPolicy="no-referrer" />
-                    {values.artworkUrl === preset ? <Check size={12} /> : null}
-                  </PresetButton>
-                ))}
-              </PresetRow>
-            </div>
-          </CoverInputRow>
-        </CoverField>
-
-        <Field $wide>
-          <FieldLabel htmlFor="title-inp">
-            <Music size={15} /> Song Title *
-          </FieldLabel>
-          <Input
-            id="title-inp"
-            value={values.title}
-            onChange={(event) => onChange("title", event.target.value)}
-            placeholder="Tizita, Ambassel..."
-            required
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="artist-inp">
-            <User size={15} /> Artist Name *
-          </FieldLabel>
-          <Input
-            id="artist-inp"
-            value={values.artist}
-            onChange={(event) => onChange("artist", event.target.value)}
-            placeholder="Aster Aweke..."
-            required
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="album-inp">
-            <Disc size={15} /> Album *
-          </FieldLabel>
-          <Input
-            id="album-inp"
-            value={values.album}
-            onChange={(event) => onChange("album", event.target.value)}
-            placeholder="Kabu, Ethiopiques..."
-            required
-          />
-        </Field>
-
-        <Field $wide>
-          <FieldLabel>
-            <Tag size={15} /> Genre Category *
-          </FieldLabel>
-          <GenrePicker>
-            {SONG_GENRES.map((genre) => (
-              <GenreChoice
-                id={`genre-preset-btn-${genre}`}
-                key={genre}
-                type="button"
-                $active={values.genre === genre}
-                onClick={() => onChange("genre", genre)}
-              >
-                {genre}
-              </GenreChoice>
-            ))}
-          </GenrePicker>
-        </Field>
-
-        <Field $wide>
-          <FieldLabel htmlFor="duration-inp">
-            <Clock size={15} /> Duration *
-          </FieldLabel>
-          <Input
-            id="duration-inp"
-            value={values.duration}
-            onChange={(event) => onChange("duration", event.target.value)}
-            placeholder="3:45"
-            required
-            pattern="[0-9]{1,2}:[0-5][0-9]"
-          />
-        </Field>
-
-        <DialogActions>
-          <SecondaryAction id="cancel-song-btn" type="button" onClick={onClose} disabled={isMutating}>
-            Cancel
-          </SecondaryAction>
-          <PrimaryAction id="submit-song-btn" type="submit" disabled={isMutating}>
-            {isMutating ? "Saving" : actionLabel}
-          </PrimaryAction>
-        </DialogActions>
-      </Form>
-    </Dialog>
-  </Overlay>
-);
 
 interface ConfirmDialogProps {
   error: string | null;
@@ -1915,12 +1755,6 @@ const Artwork = styled.img`
   background: #f4f4f5;
 `;
 
-const ArtworkLarge = styled(Artwork)`
-  width: 68px;
-  height: 68px;
-  border-radius: 16px;
-`;
-
 const TitleText = styled.div`
   min-width: 0;
 
@@ -2475,117 +2309,6 @@ const FormErrors = styled.div`
   p {
     margin: 0;
   }
-`;
-
-const Form = styled.form`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding: 24px;
-
-  @media (max-width: 560px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const Field = styled.label<{ $wide?: boolean }>`
-  grid-column: ${({ $wide }) => ($wide ? "1 / -1" : "auto")};
-  display: grid;
-  gap: 7px;
-`;
-
-const CoverField = styled.div`
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 9px;
-`;
-
-const FieldLabel = styled.label`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #d4d4d8;
-  font-size: 0.7rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const CoverInputRow = styled.div`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  height: 40px;
-  border: 1px solid #3f3f46;
-  border-radius: 12px;
-  outline: 0;
-  background: #27272a;
-  color: #f4f4f5;
-  padding: 0 13px;
-  font-size: 0.82rem;
-  font-weight: 650;
-
-  &:focus {
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
-  }
-`;
-
-const PresetRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 8px;
-
-  span {
-    color: #a1a1aa;
-    font-size: 0.64rem;
-    font-weight: 750;
-  }
-`;
-
-const PresetButton = styled.button<{ $active?: boolean }>`
-  width: 26px;
-  height: 26px;
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  border: 2px solid ${({ $active }) => ($active ? "#ef4444" : "transparent")};
-  border-radius: 8px;
-  background: transparent;
-  padding: 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  svg {
-    position: absolute;
-    color: #ffffff;
-  }
-`;
-
-const GenrePicker = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-`;
-
-const GenreChoice = styled.button<{ $active?: boolean }>`
-  border: 1px solid ${({ $active }) => ($active ? "#ef4444" : "#3f3f46")};
-  border-radius: 999px;
-  background: ${({ $active }) => ($active ? "#ef4444" : "#27272a")};
-  color: ${({ $active }) => ($active ? "#ffffff" : "#d4d4d8")};
-  padding: 7px 12px;
-  font-size: 0.72rem;
-  font-weight: 800;
 `;
 
 const DialogActions = styled.div`

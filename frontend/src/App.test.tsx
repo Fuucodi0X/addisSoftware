@@ -3,6 +3,7 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { DesignSystemProvider } from "./design/DesignSystemProvider";
 import {
   createSongRequested,
   deleteSongRequested,
@@ -77,9 +78,11 @@ const renderApp = (preloadedState?: { songs: RootState["songs"] }) => {
   });
 
   render(
-    <Provider store={store}>
-      <App />
-    </Provider>
+    <DesignSystemProvider>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </DesignSystemProvider>
   );
 
   return { store };
@@ -190,6 +193,26 @@ describe("App", () => {
         }
       })
     );
+  });
+
+  it("renders add modal validation errors through form feedback", async () => {
+    const { store } = renderApp({ songs: appState() });
+    const dispatchSpy = vi.spyOn(store, "dispatch");
+
+    await settleMountEffects();
+    dispatchSpy.mockClear();
+    fireEvent.click(screen.getByTitle("Add Song"));
+    fireEvent.change(screen.getByLabelText(/Song Title/), { target: { value: "Ambassel" } });
+    fireEvent.change(screen.getByLabelText(/Artist Name/), { target: { value: "Aster Aweke" } });
+    fireEvent.change(screen.getByLabelText(/Album/), { target: { value: "Kabu" } });
+    fireEvent.click(screen.getByRole("button", { name: "Pop" }));
+    fireEvent.change(screen.getByLabelText(/Duration/), { target: { value: "345" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Save Song" }).closest("form") as HTMLFormElement);
+
+    const feedback = screen.getByRole("alert");
+
+    expect(within(feedback).getByText("duration must use M:SS or MM:SS format.")).toBeTruthy();
+    expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: createSongRequested.type }));
   });
 
   it("dispatches delete Song requests from the confirmation modal", async () => {
