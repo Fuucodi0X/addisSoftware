@@ -7,6 +7,7 @@ import { Song } from "./songs/song.js";
 vi.mock("./songs/song.js", () => ({
   Song: {
     countDocuments: vi.fn(),
+    distinct: vi.fn(),
     find: vi.fn()
   }
 }));
@@ -28,6 +29,7 @@ const queryChain = <T>(value: T) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(Song.distinct).mockReturnValue(queryChain(["Ethio-jazz", "Pop"]) as never);
 });
 
 describe("health endpoint", () => {
@@ -83,9 +85,55 @@ describe("song list endpoint", () => {
       page: 1,
       limit: 5,
       totalItems: 1,
-      totalPages: 1
+      totalPages: 1,
+      genres: ["Ethio-jazz", "Pop"]
     });
     expect(JSON.stringify(response.body)).not.toContain("_id");
     expect(JSON.stringify(response.body)).not.toContain("__v");
+  });
+
+  it("filters by search and genre before paginating", async () => {
+    vi.mocked(Song.find).mockReturnValue(queryChain([]) as never);
+    vi.mocked(Song.countDocuments).mockReturnValue(queryChain(0) as never);
+
+    const response = await request(createApp()).get(
+      "/api/songs?q=mulatu&genre=Ethio-jazz&page=2&limit=3"
+    );
+
+    expect(response.status).toBe(200);
+    expect(Song.find).toHaveBeenCalledWith({
+      $and: [
+        {
+          $or: [
+            { title: /mulatu/i },
+            { artist: /mulatu/i },
+            { album: /mulatu/i },
+            { genre: /mulatu/i }
+          ]
+        },
+        { genre: /^Ethio-jazz$/i }
+      ]
+    });
+    expect(Song.countDocuments).toHaveBeenCalledWith({
+      $and: [
+        {
+          $or: [
+            { title: /mulatu/i },
+            { artist: /mulatu/i },
+            { album: /mulatu/i },
+            { genre: /mulatu/i }
+          ]
+        },
+        { genre: /^Ethio-jazz$/i }
+      ]
+    });
+    expect(response.body).toMatchObject({
+      items: [],
+      page: 2,
+      limit: 3,
+      totalItems: 0,
+      totalPages: 0,
+      genres: ["Ethio-jazz", "Pop"]
+    });
   });
 });
