@@ -98,6 +98,9 @@ describe("song list endpoint", () => {
     });
     expect(JSON.stringify(response.body)).not.toContain("_id");
     expect(JSON.stringify(response.body)).not.toContain("__v");
+    expect(response.body.items[0]).toHaveProperty("id");
+    expect(response.body.items[0]).not.toHaveProperty("_id");
+    expect(response.body.items[0]).not.toHaveProperty("__v");
   });
 
   it("filters by search and genre before paginating", async () => {
@@ -245,9 +248,42 @@ describe("song mutation endpoints", () => {
       artworkUrl: null,
       duration: "3:45"
     });
+    expect(response.body).not.toHaveProperty("_id");
+    expect(response.body).not.toHaveProperty("__v");
   });
 
-  it("rejects missing required fields, overlong fields, invalid duration, and unknown fields", async () => {
+  it("accepts duplicate Song payloads", async () => {
+    vi.mocked(Song.create)
+      .mockResolvedValueOnce(songDocument as never)
+      .mockResolvedValueOnce({
+        ...songDocument,
+        _id: new mongoose.Types.ObjectId("64f111111111111111111112")
+      } as never);
+
+    const payload = {
+      title: "Ambassel",
+      artist: "Aster Aweke",
+      album: "Kabu",
+      genre: "Pop",
+      duration: "3:45",
+      artworkUrl: null
+    };
+
+    const firstResponse = await request(createApp()).post("/api/songs").send(payload);
+    const duplicateResponse = await request(createApp()).post("/api/songs").send(payload);
+
+    expect(firstResponse.status).toBe(201);
+    expect(duplicateResponse.status).toBe(201);
+    expect(duplicateResponse.body).toMatchObject({
+      id: "64f111111111111111111112",
+      title: "Ambassel",
+      artist: "Aster Aweke",
+      album: "Kabu"
+    });
+    expect(Song.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects missing required fields, overlong fields, invalid duration, unknown fields, and invalid artwork URL", async () => {
     const response = await request(createApp())
       .post("/api/songs")
       .send({
@@ -256,7 +292,8 @@ describe("song mutation endpoints", () => {
         album: "Kabu",
         genre: "Experimental",
         duration: "3:99",
-        audioUrl: "https://example.com/song.mp3"
+        audioUrl: "https://example.com/song.mp3",
+        artworkUrl: "not-a-url"
       });
 
     expect(response.status).toBe(400);
@@ -266,10 +303,37 @@ describe("song mutation endpoints", () => {
         "title is required.",
         "artist must be 120 characters or fewer.",
         "genre must be one of: Ethio-jazz, Pop, Contemporary, Soul, Traditional.",
-        "duration must use M:SS or MM:SS format."
+        "duration must use M:SS or MM:SS format.",
+        "artworkUrl must be a valid HTTP or HTTPS URL."
       ])
     );
     expect(Song.create).not.toHaveBeenCalled();
+  });
+
+  it("allows an explicit null artwork URL", async () => {
+    vi.mocked(Song.create).mockResolvedValue(songDocument as never);
+
+    const response = await request(createApp())
+      .post("/api/songs")
+      .send({
+        title: "Ambassel",
+        artist: "Aster Aweke",
+        album: "Kabu",
+        genre: "Pop",
+        duration: "3:45",
+        artworkUrl: null
+      });
+
+    expect(response.status).toBe(201);
+    expect(Song.create).toHaveBeenCalledWith({
+      title: "Ambassel",
+      artist: "Aster Aweke",
+      album: "Kabu",
+      genre: "Pop",
+      duration: "3:45",
+      artworkUrl: null
+    });
+    expect(response.body.artworkUrl).toBeNull();
   });
 
   it("updates a Song by ID", async () => {

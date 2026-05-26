@@ -47,6 +47,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isSongGenre = (value: string): value is SongGenre =>
   SONG_GENRES.some((genre) => genre === value);
 
+const isValidArtworkUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 const validateSongPayload = (payload: unknown): ValidationResult => {
   if (!isRecord(payload)) {
     return { errors: ["Request body must be an object."] };
@@ -105,6 +114,8 @@ const validateSongPayload = (payload: unknown): ValidationResult => {
         attrs.artworkUrl = null;
       } else if (trimmedArtworkUrl.length > SONG_FIELD_LIMITS.artworkUrl) {
         errors.push(`artworkUrl must be ${SONG_FIELD_LIMITS.artworkUrl} characters or fewer.`);
+      } else if (!isValidArtworkUrl(trimmedArtworkUrl)) {
+        errors.push("artworkUrl must be a valid HTTP or HTTPS URL.");
       } else {
         attrs.artworkUrl = trimmedArtworkUrl;
       }
@@ -119,9 +130,6 @@ const validateSongPayload = (payload: unknown): ValidationResult => {
 
   return { attrs: attrs as SongAttrs };
 };
-
-const isDuplicateKeyError = (error: unknown) =>
-  isRecord(error) && error.code === 11000;
 
 const isValidSongId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
@@ -255,11 +263,6 @@ export const createSongRouter = () => {
 
       response.status(201).json(toSongResponse(song));
     } catch (error) {
-      if (isDuplicateKeyError(error)) {
-        response.status(409).json({ message: "A Song with that title, artist, and album already exists." });
-        return;
-      }
-
       next(error);
     }
   });
@@ -289,11 +292,6 @@ export const createSongRouter = () => {
 
       response.status(200).json(toSongResponse(song));
     } catch (error) {
-      if (isDuplicateKeyError(error)) {
-        response.status(409).json({ message: "A Song with that title, artist, and album already exists." });
-        return;
-      }
-
       next(error);
     }
   };

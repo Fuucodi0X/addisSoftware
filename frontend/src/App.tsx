@@ -85,7 +85,7 @@ const getSongFormValues = (song?: Song): SongFormValues => ({
   album: song?.album ?? "",
   genre: song?.genre ?? "",
   duration: song?.duration ?? "",
-  artworkUrl: song?.artworkUrl ?? artworkPresets[0]
+  artworkUrl: song?.artworkUrl ?? ""
 });
 
 const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload; errors?: string[] } => {

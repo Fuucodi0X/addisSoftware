@@ -24,14 +24,32 @@ const songSchema = new Schema<SongDocument>(
     album: { type: String, required: true, trim: true, maxlength: 120 },
     genre: { type: String, required: true, trim: true, enum: SONG_GENRES, maxlength: 80 },
     duration: { type: String, required: true, trim: true, match: /^\d{1,2}:[0-5]\d$/ },
-    artworkUrl: { type: String, default: null, trim: true, maxlength: 2048 }
+    artworkUrl: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 2048,
+      validate: {
+        validator: (value: string | null) => {
+          if (value === null || value === "") {
+            return true;
+          }
+
+          try {
+            const url = new URL(value);
+            return url.protocol === "http:" || url.protocol === "https:";
+          } catch {
+            return false;
+          }
+        },
+        message: "artworkUrl must be a valid HTTP or HTTPS URL."
+      }
+    }
   },
   {
     timestamps: true
   }
 );
-
-songSchema.index({ title: 1, artist: 1, album: 1 }, { unique: true });
 
 export type SongModel = Model<SongDocument>;
 export type SongRecord = HydratedDocument<SongDocument> | (SongDocument & { _id: mongoose.Types.ObjectId });

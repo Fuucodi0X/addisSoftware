@@ -3,7 +3,14 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { fetchSongsRequested, songsReducer } from "./store/songsSlice";
+import {
+  createSongRequested,
+  deleteSongRequested,
+  fetchSongsFailed,
+  fetchSongsRequested,
+  songsReducer,
+  updateSongRequested
+} from "./store/songsSlice";
 import type { RootState } from "./store/store";
 
 const appState = (overrides?: Partial<RootState["songs"]>): RootState["songs"] => ({
@@ -78,7 +85,26 @@ const renderApp = (preloadedState?: { songs: RootState["songs"] }) => {
   return { store };
 };
 
+const settleMountEffects = async () => {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
 describe("App", () => {
+  it("renders Song table rows with catalogue metadata", () => {
+    renderApp({ songs: appState() });
+
+    const table = screen.getByRole("table", { name: "Song Catalog" });
+
+    expect(within(table).getByText("Tizita")).toBeTruthy();
+    expect(within(table).getByText("Mulatu Astatke")).toBeTruthy();
+    expect(within(table).getByText("Ethiopiques")).toBeTruthy();
+    expect(within(table).getByText("Ethio-jazz")).toBeTruthy();
+    expect(within(table).getByText("4:08")).toBeTruthy();
+    expect(within(table).getByText("Yene Habesha")).toBeTruthy();
+  });
+
   it("renders the Song Library shell", () => {
     renderApp({ songs: appState() });
 
@@ -111,6 +137,71 @@ describe("App", () => {
     expect(within(dialog).getByText("Tizita")).toBeTruthy();
     expect(within(dialog).getByText("Permanent action")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Song Library" })).toBeTruthy();
+  });
+
+  it("dispatches create Song requests from the add modal", async () => {
+    const { store } = renderApp({ songs: appState() });
+    const dispatchSpy = vi.spyOn(store, "dispatch");
+
+    await settleMountEffects();
+    dispatchSpy.mockClear();
+    fireEvent.click(screen.getByTitle("Add Song"));
+    fireEvent.change(screen.getByLabelText(/Song Title/), { target: { value: "  Ambassel  " } });
+    fireEvent.change(screen.getByLabelText(/Artist Name/), { target: { value: " Aster Aweke " } });
+    fireEvent.change(screen.getByLabelText(/Album/), { target: { value: " Kabu " } });
+    fireEvent.click(screen.getByRole("button", { name: "Pop" }));
+    fireEvent.change(screen.getByLabelText(/Duration/), { target: { value: " 3:45 " } });
+    fireEvent.change(document.getElementById("cover-url-input") as HTMLInputElement, { target: { value: "" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Save Song" }).closest("form") as HTMLFormElement);
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      createSongRequested({
+        title: "Ambassel",
+        artist: "Aster Aweke",
+        album: "Kabu",
+        genre: "Pop",
+        duration: "3:45",
+        artworkUrl: null
+      })
+    );
+  });
+
+  it("dispatches update Song requests from the edit modal", async () => {
+    const { store } = renderApp({ songs: appState() });
+    const dispatchSpy = vi.spyOn(store, "dispatch");
+
+    await settleMountEffects();
+    dispatchSpy.mockClear();
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
+    fireEvent.change(screen.getByLabelText(/Song Title/), { target: { value: "Tizita Updated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Contemporary" }));
+    fireEvent.submit(screen.getByRole("button", { name: "Update Record" }).closest("form") as HTMLFormElement);
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      updateSongRequested({
+        id: "song-1",
+        song: {
+          title: "Tizita Updated",
+          artist: "Mulatu Astatke",
+          album: "Ethiopiques",
+          genre: "Contemporary",
+          duration: "4:08",
+          artworkUrl: null
+        }
+      })
+    );
+  });
+
+  it("dispatches delete Song requests from the confirmation modal", async () => {
+    const { store } = renderApp({ songs: appState() });
+    const dispatchSpy = vi.spyOn(store, "dispatch");
+
+    await settleMountEffects();
+    dispatchSpy.mockClear();
+    fireEvent.click(screen.getAllByRole("button", { name: /del/i })[1]);
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete this song?" })).getByRole("button", { name: "Delete Song" }));
+
+    expect(dispatchSpy).toHaveBeenCalledWith(deleteSongRequested({ id: "song-2" }));
   });
 
   it("debounces search requests while keeping the search input focused", () => {
@@ -211,6 +302,75 @@ describe("App", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("dispatches genre filter and page requests", async () => {
+    const { store } = renderApp({
+      songs: appState({
+        page: 1,
+        totalItems: 12,
+        totalPages: 2
+      })
+    });
+
+    await settleMountEffects();
+    fireEvent.click(document.getElementById("filter-genre-pill-Soul") as HTMLButtonElement);
+
+    expect(store.getState().songs.query).toMatchObject({ genre: "Soul", page: 1 });
+
+    act(() => {
+      store.dispatch({
+        type: "songs/fetchSongsSucceeded",
+        payload: {
+          items: store.getState().songs.items,
+          genres: ["Ethio-jazz", "Soul"],
+          page: 1,
+          limit: 8,
+          totalItems: 12,
+          totalPages: 2
+        }
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(store.getState().songs.query).toMatchObject({ genre: "Soul", page: 2 });
+  });
+
+  it("renders loading, empty, and error catalog states", () => {
+    const { store } = renderApp({
+      songs: appState({
+        items: [],
+        status: "loading",
+        totalItems: 0,
+        totalPages: 0
+      })
+    });
+
+    expect(screen.getByText("Retrieving Song Library records...")).toBeTruthy();
+
+    act(() => {
+      store.dispatch({
+        type: "songs/fetchSongsSucceeded",
+        payload: {
+          items: [],
+          genres: ["Ethio-jazz", "Soul"],
+          page: 1,
+          limit: 8,
+          totalItems: 0,
+          totalPages: 0
+        }
+      });
+    });
+
+    expect(screen.getByText("No Songs have been added yet.")).toBeTruthy();
+
+    act(() => {
+      store.dispatch(fetchSongsFailed("Song API returned 500"));
+    });
+
+    expect(screen.getByText("Connection Error")).toBeTruthy();
+    expect(screen.getByText("Song API returned 500")).toBeTruthy();
   });
 
   it("keeps the last selected Song in the footer when search has no results", () => {
