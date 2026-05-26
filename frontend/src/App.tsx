@@ -1,4 +1,3 @@
-import { Global } from "@emotion/react";
 import styled from "@emotion/styled";
 import {
   Activity,
@@ -415,24 +414,6 @@ export const App = () => {
 
   return (
     <>
-      <Global
-        styles={{
-          "*, *::before, *::after": { boxSizing: "border-box" },
-          "html, body, #root": { minHeight: "100%" },
-          "html, body": { overflowX: "hidden" },
-          body: {
-            margin: 0,
-            minWidth: 320,
-            background: "#f4f4f5",
-            color: "#27272a",
-            fontFamily: '"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif'
-          },
-          "button, input, select": { font: "inherit" },
-          button: { cursor: "pointer" },
-          "*": { scrollbarWidth: "none" },
-          "*::-webkit-scrollbar": { display: "none" }
-        }}
-      />
       <Shell>
         <AppFrame id="lunio-app-shell">
           <Sidebar id="sidebar-panel" aria-label="Primary">
