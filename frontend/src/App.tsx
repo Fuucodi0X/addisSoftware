@@ -163,7 +163,6 @@ const getStatsAdapters = (stats: SongLibraryStats) => {
     averageSongsPerArtist:
       stats.totals.artists > 0 ? (stats.totals.songs / stats.totals.artists).toFixed(1) : "0",
     genreEntries,
-    maxAlbumSongs: Math.max(1, ...stats.songsByAlbum.map((item) => item.songs)),
     topArtist,
     topGenre
   };
@@ -1222,7 +1221,6 @@ const StatsDashboard = ({ adapters, error, onBack, stats, status }: StatsDashboa
               ) : (
                 <tr>
                   <th>Album Title</th>
-                  <th>Relative Density Indicator</th>
                   <th>Songs Segment</th>
                 </tr>
               )}
@@ -1248,11 +1246,6 @@ const StatsDashboard = ({ adapters, error, onBack, stats, status }: StatsDashboa
                           <Disc size={14} />
                         </AlbumIcon>
                         {album}
-                      </td>
-                      <td>
-                        <Density>
-                          <span style={{ width: `${Math.min(100, (count / adapters.maxAlbumSongs) * 100)}%` }} />
-                        </Density>
                       </td>
                       <td>
                         <CountPill>{count} Songs</CountPill>
@@ -3035,20 +3028,4 @@ const AlbumIcon = styled.span`
   border-radius: 9px;
   background: rgba(161, 90, 255, 0.14);
   color: #a15aff;
-`;
-
-const Density = styled.div`
-  width: 140px;
-  height: 7px;
-  display: inline-block;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #f4f4f5;
-
-  span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: #a15aff;
-  }
 `;
