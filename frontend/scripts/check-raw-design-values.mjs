@@ -1,11 +1,16 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join, relative, resolve } from "node:path";
 
-const repoRoot = new URL("../..", import.meta.url).pathname;
-const featureRoot = join(repoRoot, "frontend/src/features");
+const scriptDirectory = import.meta.url.startsWith("file:")
+  ? dirname(fileURLToPath(import.meta.url))
+  : join(process.cwd(), "scripts");
+
+export const repoRoot = resolve(scriptDirectory, "../..");
+export const featureRoot = join(repoRoot, "frontend/src/features");
 const allowedExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
 
-const rules = [
+export const designValueRules = [
   {
     name: "raw hex color",
     pattern: /#[0-9a-fA-F]{3,8}\b/,
@@ -45,14 +50,12 @@ const walk = (dir) =>
     return allowedExtensions.has(extensionOf(fullPath)) ? [fullPath] : [];
   });
 
-const findings = [];
-
-for (const filePath of walk(featureRoot)) {
-  const source = readFileSync(filePath, "utf8");
+export const scanDesignValues = (source, filePath = "inline-source.tsx") => {
+  const findings = [];
   const lines = source.split(/\r?\n/);
 
   lines.forEach((line, index) => {
-    for (const rule of rules) {
+    for (const rule of designValueRules) {
       if (rule.pattern.test(line)) {
         findings.push({
           filePath,
@@ -63,18 +66,42 @@ for (const filePath of walk(featureRoot)) {
       }
     }
   });
-}
 
-if (findings.length > 0) {
-  console.error("Raw design values found in frontend feature code.\n");
+  return findings;
+};
 
-  for (const finding of findings) {
-    console.error(`${relative(repoRoot, finding.filePath)}:${finding.line} ${finding.rule.name}`);
-    console.error(`  ${finding.text}`);
-    console.error(`  ${finding.rule.message}\n`);
+export const scanFeatureFiles = (root = featureRoot) =>
+  walk(root).flatMap((filePath) => scanDesignValues(readFileSync(filePath, "utf8"), filePath));
+
+export const reportFindings = (findings, root = repoRoot) => {
+  if (findings.length === 0) {
+    return "No raw design values found in frontend feature code.";
   }
 
-  process.exit(1);
-}
+  const output = ["Raw design values found in frontend feature code.", ""];
 
-console.log("No raw design values found in frontend feature code.");
+  for (const finding of findings) {
+    output.push(`${relative(root, finding.filePath)}:${finding.line} ${finding.rule.name}`);
+    output.push(`  ${finding.text}`);
+    output.push(`  ${finding.rule.message}`);
+    output.push("");
+  }
+
+  return output.join("\n");
+};
+
+const runCli = () => {
+  const findings = scanFeatureFiles();
+  const report = reportFindings(findings);
+
+  if (findings.length > 0) {
+    console.error(report);
+    process.exit(1);
+  }
+
+  console.log(report);
+};
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  runCli();
+}
