@@ -1,58 +1,30 @@
 # Song Library
 
-Song Library is a MERN catalogue application for managing Song records and viewing aggregate catalogue statistics.
+Song Library is a full-stack MERN catalogue for managing Song records and viewing global Song Library statistics.
 
-## Workspace
+## Tech Stack
 
-This repository is a pnpm workspace with two deployable service roots:
+- Backend: Node.js, Express, TypeScript, Mongoose, MongoDB
+- Frontend: Vite, React, TypeScript, Redux Toolkit, Redux Saga, Emotion, Styled System
+- Workspace and tooling: pnpm workspaces, Vitest, Docker Compose
+- Deployment targets: Render for backend, Vercel for frontend
 
-- `backend/` - Express, TypeScript, MongoDB-ready API shell for Render.
-- `frontend/` - Vite, React, TypeScript app shell for Vercel.
+## Workspace Shape
 
-## Local Development
+- `backend/`: Song API service package (`@addis-song-library/backend`)
+- `frontend/`: Song Library UI package (`@addis-song-library/frontend`)
+- `docker-compose.yml`: local backend + MongoDB runtime only
+
+## Quick Start
+
+1. Install prerequisites: Node.js `>=22`, pnpm `>=10`, and Docker (optional for local MongoDB).
+2. Install dependencies:
 
 ```sh
 pnpm install
-pnpm dev
 ```
 
-Run one service at a time:
-
-```sh
-pnpm --filter @addis-song-library/backend dev
-pnpm --filter @addis-song-library/frontend dev
-```
-
-Run checks:
-
-```sh
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-Seed local Song records after MongoDB is running:
-
-```sh
-pnpm --filter @addis-song-library/backend seed
-```
-
-The seed command upserts curated Ethiopian-focused Songs, does not delete existing data, and refuses to run with `NODE_ENV=production`.
-
-## Docker Compose
-
-Docker Compose is scoped to local backend and MongoDB development only:
-
-```sh
-docker compose up --build
-```
-
-The backend health endpoint is available at `http://localhost:4000/health`.
-The Song list endpoint is available at `http://localhost:4000/api/songs`.
-
-## Environment
-
-Copy examples before local development:
+3. Create local env files:
 
 ```sh
 cp .env.example .env
@@ -60,4 +32,61 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-Root variables are for orchestration only. Backend variables configure the API and MongoDB connection string. Frontend variables configure browser-visible Vite settings such as the API base URL.
+4. Start backend and frontend in separate terminals:
+
+```sh
+pnpm --filter @addis-song-library/backend dev
+pnpm --filter @addis-song-library/frontend dev
+```
+
+5. Seed Song records after MongoDB is available:
+
+```sh
+pnpm --filter @addis-song-library/backend seed
+```
+
+The seed command upserts curated Ethiopian-focused Songs, preserves existing records, and refuses to run with `NODE_ENV=production`.
+
+## Common Commands
+
+```sh
+pnpm dev
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check:design-values
+```
+
+## Docker Compose (Local Only)
+
+Docker Compose is intentionally scoped to local development infrastructure and is not part of production deployment:
+
+```sh
+docker compose up --build
+```
+
+- Backend health: `http://localhost:4000/health`
+- Song list: `http://localhost:4000/api/songs`
+
+## Deployment Pointers
+
+- Render deployment notes: [backend/README.md](backend/README.md)
+- Vercel deployment notes: [frontend/README.md](frontend/README.md)
+
+## Manual Verification Checklist
+
+- [ ] Install dependencies with `pnpm install`.
+- [ ] Start MongoDB (Docker Compose or local MongoDB instance).
+- [ ] Run `pnpm --filter @addis-song-library/backend seed`.
+- [ ] Start backend with `pnpm --filter @addis-song-library/backend dev`.
+- [ ] Start frontend with `pnpm --filter @addis-song-library/frontend dev`.
+- [ ] Confirm Song list loads without page refresh.
+- [ ] Create a Song and verify it appears immediately.
+- [ ] Edit a Song and verify changes appear immediately.
+- [ ] Delete a Song and verify removal appears immediately.
+- [ ] Search Songs by title, artist, album, or genre.
+- [ ] Filter Songs by genre.
+- [ ] Change Song catalog pages and verify pagination metadata.
+- [ ] Open statistics view and confirm totals/distributions load.
+- [ ] Perform create/update/delete and confirm statistics refresh.
+- [ ] Perform create/update/delete and confirm no full browser page reload is needed.
