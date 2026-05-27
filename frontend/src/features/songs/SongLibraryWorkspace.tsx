@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { AlertCircle, Award, Moon, Play, Plus, Sun } from "lucide-react";
+import { AlertCircle, Award, BarChart3, Moon, Play, Plus, Sun } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useColorScheme } from "../../design/DesignSystemProvider";
@@ -78,6 +78,14 @@ export const SongLibraryWorkspace = () => {
   const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const isInitialSongsLoading = status === "loading" && !hasLoadedSongs;
 
+  const scrollMainToTop = () => {
+    if (typeof scrollRef.current?.scrollTo !== "function") {
+      return;
+    }
+
+    scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   useEffect(() => {
     dispatch(fetchSongsRequested());
     dispatch(fetchStatsRequested());
@@ -119,7 +127,17 @@ export const SongLibraryWorkspace = () => {
 
   const goHome = () => {
     setActiveTab("home");
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    scrollMainToTop();
+  };
+
+  const showStats = () => {
+    setActiveTab("stats");
+    scrollMainToTop();
+  };
+
+  const toggleStats = () => {
+    setActiveTab((current) => (current === "stats" ? "home" : "stats"));
+    scrollMainToTop();
   };
 
   const openCreateModal = () => {
@@ -216,19 +234,34 @@ export const SongLibraryWorkspace = () => {
               <span />
             </BrandButton>
             <SidebarSpacer aria-hidden="true" />
-            <IconButton
-              id="theme-toggle-btn"
-              type="button"
-              title={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
-              aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
-              aria-pressed={preference !== "system"}
-              shape="circle"
-              size="md"
-              variant="soft"
-              onClick={toggleMode}
-            >
-              {mode === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-            </IconButton>
+            <SidebarControls>
+              <StatsToggleButton
+                id="sidebar-stats-btn"
+                type="button"
+                title="Show stats page"
+                aria-label="Show stats page"
+                aria-pressed={activeTab === "stats"}
+                shape="circle"
+                size="md"
+                variant="soft"
+                onClick={toggleStats}
+              >
+                <BarChart3 size={17} />
+              </StatsToggleButton>
+              <IconButton
+                id="theme-toggle-btn"
+                type="button"
+                title={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
+                aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
+                aria-pressed={preference !== "system"}
+                shape="circle"
+                size="md"
+                variant="soft"
+                onClick={toggleMode}
+              >
+                {mode === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+              </IconButton>
+            </SidebarControls>
           </Sidebar>
 
           <MainPanel id="main-content-panel">
@@ -284,7 +317,7 @@ export const SongLibraryWorkspace = () => {
                           <Award size={16} />
                           In-Catalog Artists
                         </PanelTitle>
-                        <TextButton id="switch-stats-btn" type="button" onClick={() => setActiveTab("stats")}>
+                        <TextButton id="switch-stats-btn" type="button" onClick={showStats}>
                           See More Analytics &gt;
                         </TextButton>
                       </PanelHeader>
@@ -472,6 +505,45 @@ const BrandButton = styled.button`
 const SidebarSpacer = styled.div`
   width: 40px;
   height: 40px;
+`;
+
+const SidebarControls = styled.div`
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
+    display: flex;
+    gap: 10px;
+  }
+`;
+
+const StatsToggleButton = styled(IconButton)`
+  position: relative;
+
+  &[aria-pressed="true"] {
+    background: var(--app-brand-subtle);
+    border-color: var(--app-brand);
+    box-shadow:
+      inset 0 0 0 1px var(--app-brand-border),
+      var(--app-shadow-soft);
+  }
+
+  &[aria-pressed="true"]:hover {
+    background: var(--app-brand-subtle);
+  }
+
+  &[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    right: ${({ theme }) => theme.space[1]}px;
+    top: ${({ theme }) => theme.space[1]}px;
+    width: ${({ theme }) => theme.space[2]}px;
+    height: ${({ theme }) => theme.space[2]}px;
+    border: 2px solid var(--app-panel);
+    border-radius: ${({ theme }) => theme.radii.full}px;
+    background: var(--app-success);
+  }
 `;
 
 const MainPanel = styled.section`

@@ -121,6 +121,25 @@ describe("App", () => {
     expect(screen.getByRole("table", { name: "Song Catalog" })).toBeTruthy();
   });
 
+  it("toggles the stats page from the clear sidebar button", () => {
+    renderApp({ songs: appState() });
+
+    const statsButton = screen.getByRole("button", { name: "Show stats page" });
+
+    expect(statsButton.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(statsButton);
+
+    expect(screen.getByText("Calculating catalog telemetry...")).toBeTruthy();
+    expect(statsButton.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(statsButton);
+
+    expect(screen.getByText("Song Catalog")).toBeTruthy();
+    expect(screen.queryByText("Calculating catalog telemetry...")).toBeNull();
+    expect(statsButton.getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("updates the local selected Song footer when a Song is selected", () => {
     renderApp({ songs: appState() });
 
