@@ -52,6 +52,16 @@ describe("health endpoint", () => {
 });
 
 describe("song list endpoint", () => {
+  it("returns unavailable immediately when MongoDB is disconnected", async () => {
+    const response = await request(
+      createApp({ enforceMongoConnection: true, isMongoConnected: () => false })
+    ).get("/api/songs");
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ message: "MongoDB is not connected" });
+    expect(Song.find).not.toHaveBeenCalled();
+  });
+
   it("returns paginated public Song responses", async () => {
     const now = new Date("2026-01-02T03:04:05.000Z");
 
