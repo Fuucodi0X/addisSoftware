@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { pathToFileURL } from "node:url";
 import { config } from "./config.js";
 import { Song, type SongAttrs } from "./songs/song.js";
 
@@ -158,22 +159,12 @@ const seedSongMetadata: Array<Omit<SongAttrs, "duration"> & { duration?: string 
   }
 ];
 
-const seedSongs: SongAttrs[] = seedSongMetadata.map((song, index) => ({
+export const seedSongs: SongAttrs[] = seedSongMetadata.map((song, index) => ({
   ...song,
   duration: song.duration ?? seedDurations[index % seedDurations.length]
 }));
 
-const assertSafeSeedTarget = () => {
-  if (config.nodeEnv === "production") {
-    throw new Error("Refusing to seed while NODE_ENV=production.");
-  }
-};
-
-const seed = async () => {
-  assertSafeSeedTarget();
-
-  await mongoose.connect(config.mongoUri);
-
+export const seedDefaultSongs = async () => {
   const result = await Song.bulkWrite(
     seedSongs.map((song) => ({
       updateOne: {
@@ -188,12 +179,20 @@ const seed = async () => {
   console.log(
     `Seed complete: ${result.upsertedCount} inserted, ${result.matchedCount} already present.`
   );
+};
+
+export const seed = async () => {
+  await mongoose.connect(config.mongoUri);
+
+  await seedDefaultSongs();
 
   await mongoose.disconnect();
 };
 
-seed().catch(async (error: unknown) => {
-  console.error(error);
-  await mongoose.disconnect();
-  process.exitCode = 1;
-});
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed().catch(async (error: unknown) => {
+    console.error(error);
+    await mongoose.disconnect();
+    process.exitCode = 1;
+  });
+}

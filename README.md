@@ -45,7 +45,7 @@ pnpm --filter @addis-song-library/frontend dev
 pnpm --filter @addis-song-library/backend seed
 ```
 
-The seed command upserts curated Ethiopian-focused Songs, preserves existing records, and refuses to run with `NODE_ENV=production`.
+The seed command upserts curated Ethiopian-focused Songs and preserves existing records. Production startup also runs the compiled seed before starting the backend so deployed databases get the same baseline Song catalogue.
 
 ## Common Commands
 
@@ -77,7 +77,7 @@ docker compose up --build
 
 - [ ] Install dependencies with `pnpm install`.
 - [ ] Start MongoDB (Docker Compose or local MongoDB instance).
-- [ ] Run `pnpm --filter @addis-song-library/backend seed`.
+- [ ] Run `pnpm --filter @addis-song-library/backend seed` for local/manual setup. Production `pnpm --filter @addis-song-library/backend start` runs the compiled seed automatically.
 - [ ] Start backend with `pnpm --filter @addis-song-library/backend dev`.
 - [ ] Start frontend with `pnpm --filter @addis-song-library/frontend dev`.
 - [ ] Confirm Song list loads without page refresh.

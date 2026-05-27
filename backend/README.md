@@ -47,7 +47,8 @@ Song payload fields:
 
 - Uses upsert behavior keyed by `title + artist + album`
 - Does not truncate or reset collections
-- Refuses to run when `NODE_ENV=production`
+- Can run in production because it is idempotent and preserves existing records
+- The production `start` command runs the compiled seed once before starting the server
 
 ## Docker
 
