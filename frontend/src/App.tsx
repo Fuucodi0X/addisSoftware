@@ -8,6 +8,7 @@ import {
   Filter,
   Heart,
   Layers,
+  Moon,
   Music,
   Pause,
   Play,
@@ -17,6 +18,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Sun,
   Tag,
   Trash2,
   User,
@@ -26,6 +28,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useColorScheme } from "./design/DesignSystemProvider";
 import { DeleteSongModal } from "./features/songs/components/DeleteSongModal";
 import { SongFormModal } from "./features/songs/components/SongFormModal";
 import {
@@ -41,6 +44,7 @@ import {
   type SongMutationPayload
 } from "./store/songsSlice";
 import type { AppDispatch, RootState } from "./store/store";
+import { IconButton } from "./ui/Button";
 
 const fallbackArtwork =
   "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=240&auto=format&fit=crop&q=80";
@@ -168,6 +172,7 @@ const getStatsAdapters = (stats: SongLibraryStats) => {
 
 export const App = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { mode, preference, toggleMode } = useColorScheme();
   const [activeTab, setActiveTab] = useState<AppTab>("home");
   const [songModal, setSongModal] = useState<SongModalState | null>(null);
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
@@ -436,6 +441,19 @@ export const App = () => {
               <span />
             </BrandButton>
             <SidebarSpacer aria-hidden="true" />
+            <IconButton
+              id="theme-toggle-btn"
+              type="button"
+              title={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
+              aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
+              aria-pressed={preference !== "system"}
+              shape="circle"
+              size="md"
+              variant="soft"
+              onClick={toggleMode}
+            >
+              {mode === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            </IconButton>
           </Sidebar>
 
           <MainPanel id="main-content-panel">
@@ -1051,7 +1069,14 @@ const StatsDashboard = ({ adapters, error, onBack, stats, status }: StatsDashboa
   );
 };
 
-const segmentColors = ["#111111", "#9c5aff", "#f05c3c", "#eca83d", "#3b82f6", "#22c55e"];
+const segmentColors = [
+  "var(--app-chart-segment-1)",
+  "var(--app-chart-segment-2)",
+  "var(--app-chart-segment-3)",
+  "var(--app-chart-segment-4)",
+  "var(--app-chart-segment-5)",
+  "var(--app-chart-segment-6)"
+];
 
 const Shell = styled.main`
   min-height: 100vh;
@@ -1059,7 +1084,7 @@ const Shell = styled.main`
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #f4f4f5;
+  background: var(--app-panel-subtle);
 
   @media (max-width: 640px) {
     padding: 0;
@@ -1072,10 +1097,10 @@ const AppFrame = styled.div`
   min-height: 760px;
   display: flex;
   overflow: hidden;
-  border: 1px solid rgba(39, 39, 42, 0.12);
+  border: 1px solid var(--app-border);
   border-radius: 32px;
-  background: #ffffff;
-  box-shadow: 0 26px 70px rgba(24, 24, 27, 0.2);
+  background: var(--app-panel);
+  box-shadow: var(--app-shadow-panel);
 
   @media (max-width: 760px) {
     height: 100vh;
@@ -1092,8 +1117,8 @@ const Sidebar = styled.aside`
   align-items: center;
   justify-content: space-between;
   padding: 24px 14px;
-  border-right: 1px solid rgba(39, 39, 42, 0.08);
-  background: #ffffff;
+  border-right: 1px solid var(--app-border-subtle);
+  background: var(--app-panel);
   flex-shrink: 0;
 
   @media (max-width: 760px) {
@@ -1101,7 +1126,7 @@ const Sidebar = styled.aside`
     height: 64px;
     flex-direction: row;
     border-right: 0;
-    border-bottom: 1px solid rgba(39, 39, 42, 0.08);
+    border-bottom: 1px solid var(--app-border-subtle);
     padding: 12px;
   }
 `;
@@ -1116,14 +1141,14 @@ const BrandButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: #dc2626;
-  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.18);
+  background: var(--app-brand);
+  box-shadow: var(--app-shadow-brand-control);
 
   span {
     height: 2px;
     width: 16px;
     border-radius: 999px;
-    background: #ffffff;
+    background: var(--app-on-brand);
   }
 
   span:nth-of-type(2) {
@@ -1142,7 +1167,7 @@ const MainPanel = styled.section`
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #fafafc;
+  background: var(--app-surface);
   overflow: hidden;
 `;
 
@@ -1183,15 +1208,15 @@ const HeroCard = styled.section`
   justify-content: space-between;
   border-radius: 28px;
   padding: 28px;
-  color: #ffffff;
-  background: linear-gradient(135deg, #7f1d1d 0%, #18181b 48%, #050505 100%);
-  box-shadow: 0 18px 42px rgba(24, 24, 27, 0.16);
+  color: var(--app-on-brand);
+  background: var(--app-hero-background);
+  box-shadow: var(--app-shadow-raised);
 
   &::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, rgba(127, 29, 29, 0.94) 0%, rgba(24, 24, 27, 0.82) 48%, transparent 75%);
+    background: var(--app-hero-overlay);
     z-index: 1;
   }
 
@@ -1206,7 +1231,7 @@ const HeroCard = styled.section`
     padding: 28px;
 
     &::after {
-      background: linear-gradient(90deg, rgba(127, 29, 29, 0.96) 0%, rgba(24, 24, 27, 0.78) 72%, rgba(24, 24, 27, 0.32) 100%);
+      background: var(--app-hero-overlay-compact);
     }
   }
 `;
@@ -1218,7 +1243,7 @@ const Kicker = styled.div`
   gap: 8px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--app-hero-kicker);
   font-size: 10px;
   font-weight: 950;
   text-transform: uppercase;
@@ -1228,7 +1253,7 @@ const Kicker = styled.div`
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    background: #34d399;
+    background: var(--app-success);
   }
 `;
 
@@ -1245,10 +1270,10 @@ const HeroCopy = styled.div`
 
   p {
     margin: 0;
-    color: #d4d4d8;
+    color: var(--app-hero-copy);
     font-size: 0.78rem;
     line-height: 1.7;
-    font-weight: 650;
+    font-weight: 750;
   }
 `;
 
@@ -1259,6 +1284,7 @@ const HeroImage = styled.img`
   height: 100%;
   object-fit: cover;
   filter: grayscale(1) brightness(0.88);
+  opacity: var(--app-hero-image-opacity);
 
   @media (max-width: 560px) {
     width: 100%;
@@ -1297,23 +1323,23 @@ const BaseAction = styled.button`
 `;
 
 const PrimaryAction = styled(BaseAction)`
-  background: #ffffff;
-  color: #18181b;
+  background: var(--app-on-brand);
+  color: var(--app-on-brand-text);
 `;
 
 const SecondaryAction = styled(BaseAction)`
-  background: #27272a;
-  color: #fafafa;
+  background: var(--app-inverse);
+  color: var(--app-panel-subtle);
 `;
 
 const ArtistPanel = styled.section`
   min-width: 0;
   min-height: 240px;
-  border: 1px solid rgba(39, 39, 42, 0.1);
+  border: 1px solid var(--app-border);
   border-radius: 28px;
-  background: #ffffff;
+  background: var(--app-panel);
   padding: 22px;
-  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+  box-shadow: var(--app-shadow-soft);
 
   @media (max-width: 560px) {
     border-radius: 24px;
@@ -1339,27 +1365,27 @@ const PanelTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #18181b;
+  color: var(--app-text);
   font-size: 0.72rem;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 
   svg {
-    color: #ef4444;
+    color: var(--app-brand);
   }
 `;
 
 const TextButton = styled.button`
   border: 0;
   background: transparent;
-  color: #8d8d94;
+  color: var(--app-muted);
   font-size: 0.65rem;
   font-weight: 800;
   white-space: nowrap;
 
   &:hover {
-    color: #ef4444;
+    color: var(--app-brand);
   }
 `;
 
@@ -1375,17 +1401,17 @@ const ArtistRow = styled.div`
   align-items: center;
   gap: 12px;
   padding: 9px;
-  border: 1px solid #f4f4f5;
+  border: 1px solid var(--app-panel-subtle);
   border-radius: 14px;
 
   strong {
     display: block;
-    color: #27272a;
+    color: var(--app-inverse);
     font-size: 0.78rem;
   }
 
   span {
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.65rem;
     font-weight: 700;
   }
@@ -1408,8 +1434,14 @@ const Avatar = styled.div<{ $tone: number }>`
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 950;
-  background: ${({ $tone }) => ["#dbeafe", "#fee2e2", "#fef3c7", "#f3e8ff"][$tone % 4]};
-  color: ${({ $tone }) => ["#1e40af", "#991b1b", "#92400e", "#6b21a8"][$tone % 4]};
+  background: ${({ $tone }) =>
+    ["var(--app-avatar-bg-1)", "var(--app-avatar-bg-2)", "var(--app-avatar-bg-3)", "var(--app-avatar-bg-4)"][
+      $tone % 4
+    ]};
+  color: ${({ $tone }) =>
+    ["var(--app-avatar-fg-1)", "var(--app-avatar-fg-2)", "var(--app-avatar-fg-3)", "var(--app-avatar-fg-4)"][
+      $tone % 4
+    ]};
 `;
 
 const CountPill = styled.span`
@@ -1417,8 +1449,8 @@ const CountPill = styled.span`
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #27272a;
-  color: #ffffff;
+  background: var(--app-inverse);
+  color: var(--app-inverse-text);
   padding: 5px 9px;
   font-size: 0.64rem;
   font-weight: 900;
@@ -1427,7 +1459,7 @@ const CountPill = styled.span`
 
 const EmptyText = styled.p`
   margin: 0;
-  color: #a1a1aa;
+  color: var(--app-muted);
   font-size: 0.78rem;
   font-weight: 650;
   font-style: italic;
@@ -1436,10 +1468,10 @@ const EmptyText = styled.p`
 const CatalogCard = styled.section`
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(39, 39, 42, 0.1);
+  border: 1px solid var(--app-border);
   border-radius: 28px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+  background: var(--app-panel);
+  box-shadow: var(--app-shadow-soft);
 
   @media (max-width: 560px) {
     border-radius: 24px;
@@ -1452,11 +1484,11 @@ const CatalogHeader = styled.header`
   justify-content: space-between;
   gap: 18px;
   padding: 20px;
-  border-bottom: 1px solid rgba(39, 39, 42, 0.08);
+  border-bottom: 1px solid var(--app-border-subtle);
 
   h2 {
     margin: 0;
-    color: #27272a;
+    color: var(--app-inverse);
     font-size: 0.88rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -1464,7 +1496,7 @@ const CatalogHeader = styled.header`
   }
 
   span {
-    color: #8d8d94;
+    color: var(--app-muted);
     font-size: 0.66rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -1496,11 +1528,11 @@ const SearchShell = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: #fafafa;
+  background: var(--app-panel-subtle);
   padding: 0 12px;
-  color: #a1a1aa;
+  color: var(--app-muted);
 
   input {
     min-width: 0;
@@ -1508,7 +1540,7 @@ const SearchShell = styled.label`
     border: 0;
     outline: 0;
     background: transparent;
-    color: #18181b;
+    color: var(--app-text);
     font-size: 0.72rem;
     font-weight: 750;
   }
@@ -1531,20 +1563,20 @@ const ClearSearchButton = styled.button`
   justify-content: center;
   border: 0;
   border-radius: 999px;
-  background: #e4e4e7;
-  color: #52525b;
+  background: var(--app-border);
+  color: var(--app-text-secondary);
   padding: 0;
 
   &:hover {
-    background: #d4d4d8;
-    color: #18181b;
+    background: var(--app-border-strong);
+    color: var(--app-text);
   }
 `;
 
 const Divider = styled.div`
   width: 1px;
   height: 18px;
-  background: #e4e4e7;
+  background: var(--app-border);
 
   @media (max-width: 760px) {
     display: none;
@@ -1556,10 +1588,10 @@ const GenreControls = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #a1a1aa;
+  color: var(--app-muted);
 
   strong {
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.64rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -1584,8 +1616,8 @@ const GenreButton = styled.button<{ $active?: boolean }>`
   border: 0;
   border-radius: 999px;
   padding: 5px 11px;
-  background: ${({ $active }) => ($active ? "#ef4444" : "#f4f4f5")};
-  color: ${({ $active }) => ($active ? "#ffffff" : "#71717a")};
+  background: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-panel-subtle)")};
+  color: ${({ $active }) => ($active ? "var(--app-on-brand)" : "var(--app-text-secondary)")};
   font-size: 0.62rem;
   font-weight: 950;
   text-transform: uppercase;
@@ -1599,14 +1631,14 @@ const TableShell = styled.div`
 const SongTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  color: #4b5563;
+  color: var(--app-text-secondary);
   font-size: 0.78rem;
 
   th {
     padding: 13px 20px;
-    background: #fafafa;
-    border-bottom: 1px solid #e4e4e7;
-    color: #a1a1aa;
+    background: var(--app-panel-subtle);
+    border-bottom: 1px solid var(--app-border);
+    color: var(--app-muted);
     font-size: 0.58rem;
     font-weight: 950;
     text-align: left;
@@ -1616,7 +1648,7 @@ const SongTable = styled.table`
 
   td {
     padding: 12px 20px;
-    border-bottom: 1px solid #f4f4f5;
+    border-bottom: 1px solid var(--app-panel-subtle);
   }
 
   th:last-of-type,
@@ -1648,11 +1680,11 @@ const SongTable = styled.table`
 `;
 
 const SongRow = styled.tr<{ $selected?: boolean }>`
-  background: ${({ $selected }) => ($selected ? "rgba(254, 242, 242, 0.78)" : "#ffffff")};
+  background: ${({ $selected }) => ($selected ? "var(--app-selected-row)" : "var(--app-panel)")};
   transition: background 150ms ease;
 
   &:hover {
-    background: ${({ $selected }) => ($selected ? "rgba(254, 226, 226, 0.8)" : "#fafafa")};
+    background: ${({ $selected }) => ($selected ? "var(--app-selected-row-hover)" : "var(--app-panel-subtle)")};
   }
 `;
 
@@ -1671,7 +1703,7 @@ const IndexCell = styled.span`
   width: 22px;
   display: inline-flex;
   justify-content: center;
-  color: #a1a1aa;
+  color: var(--app-muted);
   font-family: "JetBrains Mono", monospace;
   font-size: 0.68rem;
   font-weight: 800;
@@ -1686,7 +1718,7 @@ const Equalizer = styled.span`
   span {
     width: 2px;
     border-radius: 999px;
-    background: #dc2626;
+    background: var(--app-brand);
     animation: pulse-bar 780ms infinite ease-in-out alternate;
   }
 
@@ -1719,9 +1751,9 @@ const Artwork = styled.img`
   height: 42px;
   flex-shrink: 0;
   object-fit: cover;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  background: #f4f4f5;
+  background: var(--app-panel-subtle);
 `;
 
 const TitleText = styled.div`
@@ -1731,7 +1763,7 @@ const TitleText = styled.div`
     display: block;
     max-width: min(230px, 42vw);
     overflow: hidden;
-    color: #18181b;
+    color: var(--app-text);
     font-size: 0.84rem;
     font-weight: 900;
     text-overflow: ellipsis;
@@ -1742,7 +1774,7 @@ const TitleText = styled.div`
     display: block;
     max-width: min(230px, 42vw);
     overflow: hidden;
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.68rem;
     font-weight: 700;
     text-overflow: ellipsis;
@@ -1758,18 +1790,18 @@ const TitleText = styled.div`
 
 const GenreLabel = styled.span`
   display: inline-flex;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--app-panel-subtle);
   padding: 5px 9px;
-  color: #71717a;
+  color: var(--app-text-secondary);
   font-size: 0.62rem;
   font-weight: 950;
   text-transform: uppercase;
 `;
 
 const DurationText = styled.span`
-  color: #8d8d94;
+  color: var(--app-muted);
   font-family: "JetBrains Mono", monospace;
   font-size: 0.72rem;
   font-weight: 900;
@@ -1781,7 +1813,7 @@ const MobileMetadata = styled.small`
   gap: 5px;
   max-width: min(230px, 42vw);
   overflow: hidden;
-  color: #a1a1aa;
+  color: var(--app-muted);
   font-size: 0.68rem;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -1796,7 +1828,7 @@ const MetadataDot = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #8d8d94;
+  color: var(--app-muted);
   font-size: 0.8em;
   font-weight: 950;
   line-height: 1;
@@ -1819,14 +1851,14 @@ const IconTextButton = styled.button<{ $danger?: boolean }>`
   align-items: center;
   gap: 5px;
   background: transparent;
-  color: ${({ $danger }) => ($danger ? "#71717a" : "#52525b")};
+  color: ${({ $danger }) => ($danger ? "var(--app-text-secondary)" : "var(--app-text-secondary)")};
   padding: 7px 8px;
   font-size: 0.68rem;
   font-weight: 850;
 
   &:hover {
-    background: ${({ $danger }) => ($danger ? "rgba(239, 68, 68, 0.1)" : "#f4f4f5")};
-    color: ${({ $danger }) => ($danger ? "#dc2626" : "#18181b")};
+    background: ${({ $danger }) => ($danger ? "var(--app-brand-soft)" : "var(--app-panel-subtle)")};
+    color: ${({ $danger }) => ($danger ? "var(--app-brand)" : "var(--app-text)")};
   }
 
   @media (max-width: 760px) {
@@ -1844,7 +1876,7 @@ const IconTextButton = styled.button<{ $danger?: boolean }>`
 const EmptyTableText = styled.div`
   padding: 24px;
   text-align: center;
-  color: #8d8d94;
+  color: var(--app-muted);
   font-weight: 700;
 `;
 
@@ -1858,9 +1890,9 @@ const Pagination = styled.footer`
   justify-content: space-between;
   gap: 14px;
   padding: 16px 20px;
-  border-top: 1px solid #e4e4e7;
-  background: #fafafa;
-  color: #8d8d94;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-panel-subtle);
+  color: var(--app-muted);
   font-size: 0.72rem;
   font-weight: 750;
 
@@ -1876,10 +1908,10 @@ const PageControls = styled.div`
 `;
 
 const PageButton = styled.button`
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  background: #ffffff;
-  color: #52525b;
+  background: var(--app-panel);
+  color: var(--app-text-secondary);
   padding: 6px 10px;
   font-size: 0.68rem;
   font-weight: 900;
@@ -1894,19 +1926,19 @@ const PageButton = styled.button`
 const PageNumber = styled(PageButton)<{ $active?: boolean }>`
   min-width: 28px;
   padding: 6px;
-  background: ${({ $active }) => ($active ? "#ef4444" : "#ffffff")};
-  border-color: ${({ $active }) => ($active ? "#ef4444" : "#e4e4e7")};
-  color: ${({ $active }) => ($active ? "#ffffff" : "#52525b")};
+  background: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-panel)")};
+  border-color: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-border)")};
+  color: ${({ $active }) => ($active ? "var(--app-on-brand)" : "var(--app-text-secondary)")};
 `;
 
 const PlayerFooter = styled.footer`
   min-height: 86px;
-  border-top: 1px solid #e4e4e7;
+  border-top: 1px solid var(--app-border);
   display: grid;
   grid-template-columns: minmax(200px, 0.9fr) minmax(260px, 1.4fr) minmax(160px, 0.8fr);
   align-items: center;
   gap: 18px;
-  background: #ffffff;
+  background: var(--app-panel);
   padding: 14px 24px;
   flex-shrink: 0;
 
@@ -1920,7 +1952,7 @@ const PlayerFooter = styled.footer`
     min-height: 152px;
     gap: 10px;
     padding: 12px 16px;
-    box-shadow: 0 -18px 38px rgba(24, 24, 27, 0.08);
+    box-shadow: var(--app-shadow-raised);
   }
 `;
 
@@ -1939,13 +1971,13 @@ const NowPlaying = styled.div`
   }
 
   strong {
-    color: #18181b;
+    color: var(--app-text);
     font-size: 0.84rem;
     font-weight: 950;
   }
 
   span {
-    color: #8d8d94;
+    color: var(--app-muted);
     font-size: 0.68rem;
     font-weight: 800;
   }
@@ -1973,25 +2005,25 @@ const RoundIcon = styled.button<{ $active?: boolean }>`
   display: grid;
   place-items: center;
   background: transparent;
-  color: ${({ $active }) => ($active ? "#dc2626" : "#71717a")};
+  color: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-text-secondary)")};
   padding: 6px;
 
   &:hover {
-    background: #f4f4f5;
-    color: #18181b;
+    background: var(--app-panel-subtle);
+    color: var(--app-text);
   }
 `;
 
 const PlayButton = styled(RoundIcon)`
   width: 42px;
   height: 42px;
-  background: #18181b;
-  color: #ffffff;
-  box-shadow: 0 12px 22px rgba(24, 24, 27, 0.18);
+  background: var(--app-inverse);
+  color: var(--app-inverse-text);
+  box-shadow: var(--app-shadow-raised);
 
   &:hover {
-    background: #27272a;
-    color: #ffffff;
+    background: var(--app-inverse);
+    color: var(--app-inverse-text);
   }
 `;
 
@@ -2001,7 +2033,7 @@ const Timeline = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #a1a1aa;
+  color: var(--app-muted);
   font-family: "JetBrains Mono", monospace;
   font-size: 0.62rem;
   font-weight: 900;
@@ -2012,13 +2044,13 @@ const ProgressTrack = styled.div`
   flex: 1;
   overflow: hidden;
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--app-panel-subtle);
 `;
 
 const ProgressFill = styled.div`
   height: 100%;
   border-radius: inherit;
-  background: #dc2626;
+  background: var(--app-brand);
 `;
 
 const Utilities = styled.div`
@@ -2036,18 +2068,18 @@ const VolumeControl = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #a1a1aa;
+  color: var(--app-muted);
 
   input {
     width: 112px;
-    accent-color: #dc2626;
+    accent-color: var(--app-brand);
   }
 `;
 
 const EmptyFooter = styled.div`
   grid-column: 1 / -1;
   text-align: center;
-  color: #a1a1aa;
+  color: var(--app-muted);
   font-size: 0.78rem;
   font-weight: 750;
   font-style: italic;
@@ -2062,14 +2094,14 @@ const FloatingAdd = styled.button`
   height: 52px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(220, 38, 38, 0.28);
+  border: 1px solid var(--app-brand-border);
   border-radius: 999px;
-  background: #dc2626;
-  color: #ffffff;
-  box-shadow: 0 16px 34px rgba(220, 38, 38, 0.22);
+  background: var(--app-brand);
+  color: var(--app-on-brand);
+  box-shadow: var(--app-shadow-floating-action);
 
   &:hover {
-    background: #b91c1c;
+    background: var(--app-brand-hover);
   }
 
   @media (max-width: 760px) {
@@ -2086,7 +2118,7 @@ const LoadingBlock = styled.div`
   place-items: center;
   align-content: center;
   gap: 12px;
-  color: #71717a;
+  color: var(--app-text-secondary);
   font-size: 0.84rem;
   font-weight: 800;
 
@@ -2098,8 +2130,8 @@ const LoadingBlock = styled.div`
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
-  border: 4px solid #e4e4e7;
-  border-top-color: #ef4444;
+  border: 4px solid var(--app-border);
+  border-top-color: var(--app-brand);
   border-radius: 999px;
   animation: spin 800ms linear infinite;
 
@@ -2114,22 +2146,22 @@ const ErrorBanner = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--app-brand-border);
   border-radius: 18px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--app-brand-soft);
+  color: var(--app-brand-hover);
   padding: 16px;
 
   p {
     margin: 3px 0 0;
-    color: #dc2626;
+    color: var(--app-brand);
     font-size: 0.78rem;
   }
 
   button {
     border: 0;
     background: transparent;
-    color: #991b1b;
+    color: var(--app-brand-text);
     padding: 8px 0 0;
     font-size: 0.72rem;
     font-weight: 850;
@@ -2138,11 +2170,11 @@ const ErrorBanner = styled.div`
 `;
 
 const StatsShell = styled.section`
-  border: 1px solid rgba(39, 39, 42, 0.1);
+  border: 1px solid var(--app-border);
   border-radius: 28px;
-  background: #ffffff;
+  background: var(--app-panel);
   padding: 28px;
-  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.05);
+  box-shadow: var(--app-shadow-soft);
 `;
 
 const StatsTopBar = styled.header`
@@ -2153,7 +2185,7 @@ const StatsTopBar = styled.header`
 
   h2 {
     margin: 0;
-    color: #f05c3c;
+    color: var(--app-analytics-accent);
     font-size: 0.78rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -2162,7 +2194,7 @@ const StatsTopBar = styled.header`
 
   p {
     margin: 5px 0 0;
-    color: #71717a;
+    color: var(--app-text-secondary);
     font-size: 0.84rem;
     font-weight: 650;
   }
@@ -2198,13 +2230,13 @@ const MetricGrid = styled.div`
 `;
 
 const MetricCard = styled.div`
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 18px;
-  background: #fafafa;
+  background: var(--app-panel-subtle);
   padding: 16px;
 
   span {
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.62rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -2213,19 +2245,19 @@ const MetricCard = styled.div`
 
   svg {
     float: right;
-    color: #f05c3c;
+    color: var(--app-analytics-accent);
   }
 
   strong {
     display: block;
-    color: #18181b;
+    color: var(--app-text);
     font-family: "JetBrains Mono", monospace;
     font-size: 1.55rem;
     font-weight: 950;
   }
 
   small {
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.62rem;
     font-weight: 750;
   }
@@ -2240,7 +2272,7 @@ const DistributionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #71717a;
+  color: var(--app-text-secondary);
   font-size: 0.66rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -2250,9 +2282,9 @@ const StackedBar = styled.div`
   min-height: 18px;
   overflow: hidden;
   display: flex;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  background: #fafafa;
+  background: var(--app-panel-subtle);
 `;
 
 const StackSegment = styled.div`
@@ -2270,9 +2302,9 @@ const LegendItem = styled.div`
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #f4f4f5;
+  border-bottom: 1px solid var(--app-panel-subtle);
   padding-bottom: 6px;
-  color: #52525b;
+  color: var(--app-text-secondary);
   font-size: 0.68rem;
   font-weight: 800;
 
@@ -2283,7 +2315,7 @@ const LegendItem = styled.div`
   }
 
   em {
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-style: normal;
     font-family: "JetBrains Mono", monospace;
   }
@@ -2292,7 +2324,7 @@ const LegendItem = styled.div`
 const RatioList = styled.div`
   display: grid;
   gap: 10px;
-  border-top: 1px solid #e4e4e7;
+  border-top: 1px solid var(--app-border);
   padding-top: 18px;
 `;
 
@@ -2301,19 +2333,19 @@ const RatioRow = styled.div`
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 14px;
-  background: #fafafa;
+  background: var(--app-panel-subtle);
   padding: 10px;
-  color: #52525b;
+  color: var(--app-text-secondary);
   font-size: 0.76rem;
   font-weight: 800;
 
   strong {
-    border: 1px solid #e4e4e7;
+    border: 1px solid var(--app-border);
     border-radius: 8px;
-    background: #ffffff;
-    color: #18181b;
+    background: var(--app-panel);
+    color: var(--app-text);
     padding: 3px 8px;
     font-family: "JetBrains Mono", monospace;
   }
@@ -2322,12 +2354,12 @@ const RatioRow = styled.div`
 const DominantCard = styled.div`
   position: relative;
   border-radius: 20px;
-  background: #18181b;
-  color: #ffffff;
+  background: var(--app-inverse);
+  color: var(--app-inverse-text);
   padding: 20px;
 
   > span {
-    color: #eca83d;
+    color: var(--app-analytics-highlight);
     font-size: 0.62rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -2338,12 +2370,12 @@ const DominantCard = styled.div`
     position: absolute;
     top: 20px;
     right: 20px;
-    color: #f05c3c;
+    color: var(--app-analytics-accent);
   }
 
   h3 {
     margin: 14px 0 3px;
-    color: #a1a1aa;
+    color: var(--app-muted);
     font-size: 0.72rem;
     text-transform: uppercase;
   }
@@ -2354,7 +2386,7 @@ const DominantCard = styled.div`
   }
 
   em {
-    color: #d4d4d8;
+    color: var(--app-border-strong);
     font-size: 0.72rem;
     font-style: normal;
     font-weight: 600;
@@ -2363,7 +2395,7 @@ const DominantCard = styled.div`
 
 const TopArtist = styled.div`
   margin-top: 14px;
-  border-top: 1px solid #3f3f46;
+  border-top: 1px solid var(--app-border-strong);
   padding-top: 12px;
 `;
 
@@ -2372,12 +2404,12 @@ const DirectoryHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--app-border);
   padding-bottom: 12px;
 
   h3 {
     margin: 0;
-    color: #18181b;
+    color: var(--app-text);
     font-size: 0.9rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -2387,16 +2419,16 @@ const DirectoryHeader = styled.div`
 
 const TabSwitch = styled.div`
   display: flex;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  background: #f4f4f5;
+  background: var(--app-panel-subtle);
   padding: 3px;
 
   button {
     border: 0;
     border-radius: 9px;
     background: transparent;
-    color: #8d8d94;
+    color: var(--app-muted);
     padding: 6px 10px;
     font-size: 0.65rem;
     font-weight: 950;
@@ -2404,24 +2436,24 @@ const TabSwitch = styled.div`
   }
 
   button[data-active="true"] {
-    background: #ffffff;
-    color: #18181b;
-    box-shadow: 0 1px 4px rgba(24, 24, 27, 0.08);
+    background: var(--app-panel);
+    color: var(--app-text);
+    box-shadow: var(--app-shadow-soft);
   }
 `;
 
 const DirectoryTable = styled.table`
   width: 100%;
   overflow: hidden;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--app-border);
   border-radius: 18px;
   border-spacing: 0;
-  color: #52525b;
+  color: var(--app-text-secondary);
   font-size: 0.76rem;
 
   th {
-    background: #fcf9f5;
-    color: #a1a1aa;
+    background: var(--app-panel-subtle);
+    color: var(--app-muted);
     padding: 11px 14px;
     text-align: left;
     font-size: 0.58rem;
@@ -2431,7 +2463,7 @@ const DirectoryTable = styled.table`
   }
 
   td {
-    border-top: 1px solid #f4f4f5;
+    border-top: 1px solid var(--app-panel-subtle);
     padding: 11px 14px;
     font-weight: 800;
   }
@@ -2449,8 +2481,8 @@ const MiniAvatar = styled.span`
   place-items: center;
   margin-right: 9px;
   border-radius: 999px;
-  background: #18181b;
-  color: #ffffff;
+  background: var(--app-inverse);
+  color: var(--app-inverse-text);
   font-family: "JetBrains Mono", monospace;
   font-size: 0.68rem;
   font-weight: 950;
@@ -2463,6 +2495,6 @@ const AlbumIcon = styled.span`
   place-items: center;
   margin-right: 9px;
   border-radius: 9px;
-  background: rgba(161, 90, 255, 0.14);
-  color: #a15aff;
+  background: var(--app-album-icon-background);
+  color: var(--app-album-icon-text);
 `;

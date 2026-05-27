@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { DesignSystemProvider } from "./design/DesignSystemProvider";
 import {
@@ -93,6 +93,11 @@ const settleMountEffects = async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 };
+
+afterEach(() => {
+  window.localStorage.clear();
+  vi.unstubAllGlobals();
+});
 
 describe("App", () => {
   it("renders Song table rows with catalogue metadata", () => {
@@ -434,5 +439,29 @@ describe("App", () => {
     expect(within(footer as HTMLElement).getByText("Yene Habesha")).toBeTruthy();
     expect(within(footer as HTMLElement).getByText("Aster Aweke - Soul")).toBeTruthy();
     expect(within(footer as HTMLElement).queryByText("Select any Song from your Library to focus it.")).toBeNull();
+  });
+
+  it("defaults to the system theme and stores a user theme toggle", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)",
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
+
+    renderApp({ songs: appState() });
+
+    const toggle = screen.getByRole("button", { name: "Switch to light theme" });
+
+    expect(window.localStorage.getItem("addis-song-library-theme")).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(window.localStorage.getItem("addis-song-library-theme")).toBe("light");
+    expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeTruthy();
   });
 });
