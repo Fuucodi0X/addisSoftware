@@ -291,7 +291,13 @@ const CatalogHeader = styled.header(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "flex-start",
-    flexDirection: "column"
+    flexDirection: "column",
+    gap: theme.space[5],
+    padding: theme.space[6]
+  },
+
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
+    padding: theme.space[5]
   }
 }));
 
@@ -386,7 +392,8 @@ const GenreControls = styled.div(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[1]})`]: {
     alignItems: "flex-start",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
+    gap: theme.space[3]
   }
 }));
 
@@ -395,7 +402,12 @@ const GenreScroller = styled.div(({ theme }) => ({
   gap: theme.space[3],
   maxWidth: "100%",
   minWidth: 0,
-  overflowX: "auto"
+  overflowX: "auto",
+
+  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+    flex: "1 1 100%",
+    width: "100%"
+  }
 }));
 
 const GenreButton = styled.button<{ $active?: boolean }>(({ theme, $active }) => ({
@@ -411,7 +423,8 @@ const GenreButton = styled.button<{ $active?: boolean }>(({ theme, $active }) =>
 }));
 
 const TableShell = styled.div({
-  overflowX: "auto"
+  minWidth: 0,
+  overflow: "hidden"
 });
 
 const Table = styled.table(({ theme }) => ({
@@ -449,8 +462,6 @@ const Table = styled.table(({ theme }) => ({
   },
 
   [`@media (max-width: ${theme.breakpoints[3]})`]: {
-    minWidth: theme.space[13] * 10,
-
     "th:nth-of-type(3), td:nth-of-type(3), th:nth-of-type(4), td:nth-of-type(4)": {
       display: "none"
     },
@@ -460,9 +471,51 @@ const Table = styled.table(({ theme }) => ({
     }
   },
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
-    "th:nth-of-type(2), td:nth-of-type(2)": {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+    display: "block",
+
+    colgroup: {
       display: "none"
+    },
+
+    thead: {
+      display: "none"
+    },
+
+    tbody: {
+      display: "grid"
+    },
+
+    tr: {
+      alignItems: "center",
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr) auto",
+      minWidth: 0
+    },
+
+    "td:first-of-type": {
+      minWidth: 0
+    },
+
+    "td:first-of-type, td:last-of-type": {
+      borderBottom: `1px solid ${theme.colors.surface.panelSubtle}`,
+      display: "block",
+      padding: `${theme.space[5]}px ${theme.space[4]}px`,
+      textAlign: "left"
+    },
+
+    "td:last-of-type": {
+      textAlign: "right"
+    },
+
+    "td:nth-of-type(2), td:nth-of-type(3), td:nth-of-type(4)": {
+      display: "none"
+    },
+
+    "td:not(:first-of-type)": {
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal"
     }
   }
 }));
@@ -502,6 +555,10 @@ const TitleCell = styled.div(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[3]})`]: {
     minWidth: 0
+  },
+
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+    gap: theme.space[4]
   }
 }));
 
@@ -512,7 +569,11 @@ const IndexCell = styled.span(({ theme }) => ({
   fontSize: theme.fontSizes.xs,
   fontWeight: theme.fontWeights.medium,
   justifyContent: "center",
-  width: theme.space[8]
+  width: theme.space[8],
+
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
+    width: theme.space[6]
+  }
 }));
 
 const Equalizer = styled.span(({ theme }) => ({
@@ -559,7 +620,12 @@ const Artwork = styled.img(({ theme }) => ({
   flexShrink: 0,
   height: theme.space[10],
   objectFit: "cover",
-  width: theme.space[10]
+  width: theme.space[10],
+
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
+    height: theme.space[9],
+    width: theme.space[9]
+  }
 }));
 
 const TitleText = styled.div(({ theme }) => ({
@@ -590,6 +656,12 @@ const TitleText = styled.div(({ theme }) => ({
   [`@media (max-width: ${theme.breakpoints[3]})`]: {
     "> span": {
       display: "none"
+    }
+  },
+
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+    strong: {
+      maxWidth: "100%"
     }
   }
 }));
@@ -627,6 +699,10 @@ const MobileMetadata = styled.small(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[3]})`]: {
     display: "flex"
+  },
+
+  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+    maxWidth: "100%"
   }
 }));
 
@@ -645,13 +721,17 @@ const RowActions = styled.div(({ theme }) => ({
   gap: theme.space[4],
   justifyContent: "flex-end",
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
-    gap: theme.space[1]
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+    gap: theme.space[1],
+
+    button: {
+      paddingInline: theme.space[3]
+    }
   }
 }));
 
 const ActionText = styled.span(({ theme }) => ({
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     display: "none"
   }
 }));
@@ -664,7 +744,11 @@ const EmptyTableText = styled.div(({ theme }) => ({
 }));
 
 const EmptyRow = styled.tr(({ theme }) => ({
-  height: theme.space[10]
+  height: theme.space[10],
+
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+    display: "none"
+  }
 }));
 
 const Pagination = styled.footer(({ theme }) => ({
@@ -679,15 +763,20 @@ const Pagination = styled.footer(({ theme }) => ({
   justifyContent: "space-between",
   padding: `${theme.space[6]}px ${theme.space[7]}px`,
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "stretch",
-    flexDirection: "column"
+    flexDirection: "column",
+    padding: theme.space[5]
   }
 }));
 
 const PageControls = styled.div(({ theme }) => ({
   display: "flex",
-  gap: theme.space[3]
+  gap: theme.space[3],
+
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
+    flexWrap: "wrap"
+  }
 }));
 
 const PageNumber = styled(Button)(({ theme }) => ({
