@@ -15,3 +15,5 @@ Migration should happen in vertical slices. The first slice should establish the
 Raw visual values should be treated as design-system internals. Feature components should not introduce raw hex colors, arbitrary shadows, arbitrary breakpoints, or one-off radii; those values belong in the theme or in reusable UI component variant definitions. `styles.css` should remain limited to small global browser defaults, and Emotion `Global` styles should move into design infrastructure.
 
 The application should be wrapped in a single Emotion `ThemeProvider`, preferably at the app entrypoint, so the theme is infrastructure rather than feature-local state.
+
+Raw-value governance is documented in `docs/frontend-design-system.md`. The lightweight `pnpm check:design-values` script scans extracted Song Library feature code for raw hex colors, arbitrary shadow literals, hardcoded media-query breakpoints, and one-off radii while leaving design-system internals free to define tokens and reusable component variants.

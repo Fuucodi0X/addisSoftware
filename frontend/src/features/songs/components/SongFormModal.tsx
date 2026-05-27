@@ -186,7 +186,7 @@ const SongForm = styled.form(({ theme }) => ({
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   padding: theme.space[7],
 
-  "@media (max-width: 560px)": {
+  [`@media (max-width: ${theme.breakpoints[1]})`]: {
     gridTemplateColumns: "1fr"
   }
 }));
@@ -213,7 +213,7 @@ const ArtworkControl = styled.div(({ theme }) => ({
   gap: theme.space[4],
   gridTemplateColumns: "auto minmax(0, 1fr)",
 
-  "@media (max-width: 480px)": {
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
     alignItems: "stretch",
     gridTemplateColumns: "1fr"
   }
@@ -292,7 +292,7 @@ const Actions = styled.div(({ theme }) => ({
   gridColumn: "1 / -1",
   justifyContent: "flex-end",
 
-  "@media (max-width: 520px)": {
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
     alignItems: "stretch",
     flexDirection: "column-reverse"
   }

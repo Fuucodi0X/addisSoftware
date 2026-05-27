@@ -94,7 +94,14 @@ export const lightTheme = {
     },
     avatar: {
       backgrounds: ["#dbeafe", "#fee2e2", "#fef3c7", "#f3e8ff"],
-      foregrounds: ["#1e40af", "#991b1b", "#92400e", "#6b21a8"]
+      foregrounds: ["#1e40af", "#991b1b", "#92400e", "#6b21a8"],
+      placeholderPalettes: [
+        { background: "#111111", accent: "#f05c3c" },
+        { background: "#27364a", accent: "#eca83d" },
+        { background: "#3f2f5f", accent: "#9c5aff" },
+        { background: "#20463a", accent: "#6ee7b7" },
+        { background: "#4d2f2a", accent: "#f7a072" }
+      ]
     },
     analytics: {
       accent: "#f05c3c",
@@ -199,7 +206,14 @@ export const darkTheme = {
     },
     avatar: {
       backgrounds: ["#dbeafe", "rgba(239, 68, 68, 0.24)", "#fef3c7", "#f3e8ff"],
-      foregrounds: ["#1e40af", "#fecaca", "#92400e", "#6b21a8"]
+      foregrounds: ["#1e40af", "#fecaca", "#92400e", "#6b21a8"],
+      placeholderPalettes: [
+        { background: "#f4f4f5", accent: "#fb7185" },
+        { background: "#1e293b", accent: "#fbbf24" },
+        { background: "#312e81", accent: "#c4b5fd" },
+        { background: "#064e3b", accent: "#6ee7b7" },
+        { background: "#431407", accent: "#fdba74" }
+      ]
     },
     analytics: {
       accent: "#fb7185",

@@ -1,3 +1,4 @@
+import { useTheme } from "@emotion/react";
 import type { Song } from "../../../store/songsSlice";
 import { getSongArtworkMeta } from "./songArtwork";
 
@@ -7,7 +8,8 @@ interface SongArtworkProps {
 }
 
 export const SongArtwork = ({ song, className = "song-artwork" }: SongArtworkProps) => {
-  const placeholder = getSongArtworkMeta(song);
+  const theme = useTheme();
+  const placeholder = getSongArtworkMeta(song, theme.colors.avatar.placeholderPalettes);
 
   if (song.artworkUrl) {
     return <img className={className} src={song.artworkUrl} alt={`${song.album} artwork`} />;

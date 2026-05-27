@@ -160,7 +160,7 @@ const Actions = styled.div(({ theme }) => ({
   gap: theme.space[3],
   justifyContent: "flex-end",
 
-  "@media (max-width: 520px)": {
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
     alignItems: "stretch",
     flexDirection: "column-reverse"
   }
