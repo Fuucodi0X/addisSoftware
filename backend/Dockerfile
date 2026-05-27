@@ -4,15 +4,14 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY backend/package.json ./backend/package.json
-RUN pnpm install --filter @addis-song-library/backend --frozen-lockfile
+COPY package.json ./
+RUN pnpm install --frozen-lockfile=false
 
 FROM deps AS build
 
-COPY backend ./backend
+COPY tsconfig.json ./
+COPY src ./src
 
-WORKDIR /app/backend
 RUN pnpm build
 
 FROM node:22-alpine AS runtime
@@ -23,13 +22,10 @@ ENV NODE_ENV=production
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY backend/package.json ./backend/package.json
-RUN pnpm install --filter @addis-song-library/backend --prod --frozen-lockfile
+COPY package.json ./
+RUN pnpm install --prod --frozen-lockfile=false
 
-COPY --from=build /app/backend/dist ./backend/dist
-
-WORKDIR /app/backend
+COPY --from=build /app/dist ./dist
 
 EXPOSE 4000
 
