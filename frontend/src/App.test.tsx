@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { App } from "./App";
+import { AppContent } from "./App";
 import { DesignSystemProvider } from "./design/DesignSystemProvider";
 import {
   createSongRequested,
@@ -80,7 +80,7 @@ const renderApp = (preloadedState?: { songs: RootState["songs"] }) => {
   render(
     <DesignSystemProvider>
       <Provider store={store}>
-        <App />
+        <AppContent />
       </Provider>
     </DesignSystemProvider>
   );
