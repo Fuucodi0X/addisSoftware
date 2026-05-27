@@ -16,9 +16,12 @@ export interface ButtonProps extends NativeButtonProps {
   variant?: ButtonVariant | LegacyButtonVariant;
 }
 
+export type IconButtonShape = "rounded" | "circle";
+
 export interface IconButtonProps extends Omit<ButtonProps, "children"> {
   "aria-label": string;
   children: ReactNode;
+  shape?: IconButtonShape;
 }
 
 interface ButtonRecipe {
@@ -248,6 +251,10 @@ const StyledIconButton = styled(StyledButton)<{ $size: ButtonSize }>(({ $size })
   };
 });
 
+const StyledRoundIconButton = styled(StyledIconButton)(({ theme }) => ({
+  borderRadius: theme.radii.full
+}));
+
 export const Button = ({ children, size = "md", tone = "neutral", type = "button", variant, ...props }: ButtonProps) => {
   const resolved = resolveButtonState(variant, tone);
 
@@ -260,6 +267,7 @@ export const Button = ({ children, size = "md", tone = "neutral", type = "button
 
 export const IconButton = ({
   children,
+  shape = "rounded",
   size = "md",
   tone = "neutral",
   type = "button",
@@ -267,10 +275,11 @@ export const IconButton = ({
   ...props
 }: IconButtonProps) => {
   const resolved = resolveButtonState(variant, tone);
+  const Component = shape === "circle" ? StyledRoundIconButton : StyledIconButton;
 
   return (
-    <StyledIconButton $size={size} $tone={resolved.tone} $variant={resolved.variant} type={type} {...props}>
+    <Component $size={size} $tone={resolved.tone} $variant={resolved.variant} type={type} {...props}>
       {children}
-    </StyledIconButton>
+    </Component>
   );
 };
