@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Edit, Filter, Search, Trash2, X } from "lucide-react";
+import type { WheelEvent } from "react";
 import type { Song } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
 
@@ -53,6 +54,20 @@ export const SongCatalogView = ({
   const endItem = Math.min(page * limit, totalItems);
   const emptyRows = Math.max(0, 5 - items.length);
   const pageNumbers = Array.from({ length: Math.max(totalPages, 1) }, (_, index) => index + 1);
+  const handleGenreWheel = (event: WheelEvent<HTMLDivElement>) => {
+    const rail = event.currentTarget;
+
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      return;
+    }
+
+    if (rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    rail.scrollLeft += event.deltaY;
+    event.preventDefault();
+  };
 
   return (
     <CatalogCard>
@@ -89,8 +104,8 @@ export const SongCatalogView = ({
           <GenreControls>
             <Filter size={15} />
             <strong>Genres:</strong>
-            <GenreScroller>
-              {["All", ...genres].slice(0, 6).map((genreName) => (
+            <GenreScroller onWheel={handleGenreWheel}>
+              {["All", ...genres].map((genreName) => (
                 <GenreButton
                   id={`filter-genre-pill-${genreName}`}
                   key={genreName}
@@ -290,7 +305,7 @@ const CatalogHeader = styled.header(({ theme }) => ({
   },
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
-    alignItems: "flex-start",
+    alignItems: "stretch",
     flexDirection: "column",
     gap: theme.space[5],
     padding: theme.space[6]
@@ -307,7 +322,7 @@ const Controls = styled.div(({ theme }) => ({
   gap: theme.space[6],
   minWidth: 0,
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "stretch",
     flexDirection: "column",
     width: "100%"
@@ -341,7 +356,7 @@ const SearchShell = styled.label(({ theme }) => ({
     display: "none"
   },
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     width: "100%"
   }
 }));
@@ -370,7 +385,7 @@ const Divider = styled.div(({ theme }) => ({
   height: theme.space[7],
   width: "1px",
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     display: "none"
   }
 }));
@@ -379,8 +394,10 @@ const GenreControls = styled.div(({ theme }) => ({
   alignItems: "center",
   color: theme.colors.text.muted,
   display: "flex",
+  flex: "1 1 0%",
   gap: theme.space[4],
   minWidth: 0,
+  overflow: "hidden",
 
   strong: {
     color: theme.colors.text.muted,
@@ -390,7 +407,7 @@ const GenreControls = styled.div(({ theme }) => ({
     textTransform: "uppercase"
   },
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "flex-start",
     flexWrap: "wrap",
     gap: theme.space[3]
@@ -399,12 +416,22 @@ const GenreControls = styled.div(({ theme }) => ({
 
 const GenreScroller = styled.div(({ theme }) => ({
   display: "flex",
+  flex: "1 1 0%",
   gap: theme.space[3],
   maxWidth: "100%",
   minWidth: 0,
   overflowX: "auto",
+  overflowY: "hidden",
+  scrollbarWidth: "none",
+  touchAction: "pan-x",
+  WebkitOverflowScrolling: "touch",
+  width: "100%",
 
-  [`@media (max-width: ${theme.breakpoints[1]})`]: {
+  "&::-webkit-scrollbar": {
+    display: "none"
+  },
+
+  [`@media (max-width: ${theme.breakpoints[2]})`]: {
     flex: "1 1 100%",
     width: "100%"
   }
@@ -415,6 +442,7 @@ const GenreButton = styled.button<{ $active?: boolean }>(({ theme, $active }) =>
   border: 0,
   borderRadius: theme.radii.full,
   color: $active ? theme.colors.brand.onPrimary : theme.colors.text.secondary,
+  flex: "0 0 auto",
   fontSize: theme.fontSizes.xs,
   fontWeight: theme.fontWeights.black,
   padding: `${theme.space[3]}px ${theme.space[5]}px`,
@@ -483,14 +511,23 @@ const Table = styled.table(({ theme }) => ({
     },
 
     tbody: {
-      display: "grid"
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr)",
+      width: "100%"
     },
 
     tr: {
       alignItems: "center",
+      borderBottom: `1px solid ${theme.colors.surface.panelSubtle}`,
       display: "grid",
-      gridTemplateColumns: "minmax(0, 1fr) auto",
-      minWidth: 0
+      gridTemplateColumns: `minmax(0, 1fr) minmax(${theme.space[12]}px, auto)`,
+      minWidth: 0,
+      overflow: "hidden",
+      width: "100%"
+    },
+
+    "tbody tr:last-of-type": {
+      borderBottom: 0
     },
 
     "td:first-of-type": {
@@ -498,14 +535,19 @@ const Table = styled.table(({ theme }) => ({
     },
 
     "td:first-of-type, td:last-of-type": {
-      borderBottom: `1px solid ${theme.colors.surface.panelSubtle}`,
+      borderBottom: 0,
       display: "block",
       padding: `${theme.space[5]}px ${theme.space[4]}px`,
       textAlign: "left"
     },
 
     "td:last-of-type": {
+      minWidth: 0,
       textAlign: "right"
+    },
+
+    "td[colspan]": {
+      gridColumn: "1 / -1"
     },
 
     "td:nth-of-type(2), td:nth-of-type(3), td:nth-of-type(4)": {
@@ -735,9 +777,11 @@ const RowActions = styled.div(({ theme }) => ({
   display: "inline-flex",
   gap: theme.space[4],
   justifyContent: "flex-end",
+  minWidth: 0,
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     gap: theme.space[1],
+    justifySelf: "end",
 
     button: {
       paddingInline: theme.space[3]
@@ -746,7 +790,7 @@ const RowActions = styled.div(({ theme }) => ({
 }));
 
 const ActionText = styled.span(({ theme }) => ({
-  [`@media (max-width: ${theme.breakpoints[2]})`]: {
+  [`@media (max-width: ${theme.breakpoints[0]})`]: {
     display: "none"
   }
 }));
