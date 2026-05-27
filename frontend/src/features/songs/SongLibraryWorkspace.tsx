@@ -5,26 +5,20 @@ import {
   Award,
   BarChart2,
   Disc,
-  Heart,
   Layers,
   Moon,
   Music,
-  Pause,
   Play,
   Plus,
-  RefreshCw,
-  Shuffle,
-  SkipBack,
-  SkipForward,
   Sun,
   Tag,
-  User,
-  Volume2
+  User
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useColorScheme } from "../../design/DesignSystemProvider";
 import { DeleteSongModal } from "./components/DeleteSongModal";
+import { FocusedSongFooter } from "./components/FocusedSongFooter";
 import { SongCatalogView } from "./components/SongCatalogView";
 import { SongFormModal } from "./components/SongFormModal";
 import {
@@ -52,19 +46,9 @@ import {
   type SongFormValues,
   type SongModalState
 } from "./songMutationForm";
+import { useFocusedSongSelection } from "./useFocusedSongSelection";
 
 type AppTab = "home" | "stats";
-
-const parseDuration = (duration: string) => {
-  const [minutes = "0", seconds = "0"] = duration.split(":");
-  return Number.parseInt(minutes, 10) * 60 + Number.parseInt(seconds, 10);
-};
-
-const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
-};
 
 const getStatsAdapters = (stats: SongLibraryStats) => {
   const genreEntries = stats.songsByGenre.map((item) => [item.genre, item.songs] as const);
@@ -92,18 +76,10 @@ export const SongLibraryWorkspace = () => {
   const [activeTab, setActiveTab] = useState<AppTab>("home");
   const [songModal, setSongModal] = useState<SongModalState | null>(null);
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
-  const [focusedSong, setFocusedSong] = useState<Song | null>(null);
-  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<SongFormValues>(emptySongForm);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [searchText, setSearchText] = useState("");
   const [hasLoadedSongs, setHasLoadedSongs] = useState(false);
-  const [playbackTime, setPlaybackTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [volume, setVolume] = useState(70);
-  const [isShuffle, setIsShuffle] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const {
@@ -125,10 +101,8 @@ export const SongLibraryWorkspace = () => {
 
   const isMutating = mutationStatus === "loading";
   const isFiltered = Boolean(query.q.trim() || query.genre.trim());
-  const activeSong = useMemo(
-    () => items.find((song) => song.id === selectedSongId) ?? focusedSong ?? items[0] ?? null,
-    [focusedSong, items, selectedSongId]
-  );
+  const focusedSelection = useFocusedSongSelection({ items });
+  const activeSong = focusedSelection.activeSong;
   const statsView = useMemo(() => getStatsAdapters(stats), [stats]);
   const formTitle = getSongModalTitle(songModal);
   const actionLabel = getSongModalActionLabel(songModal);
@@ -177,80 +151,6 @@ export const SongLibraryWorkspace = () => {
       dispatch(clearSongMutationState());
     }
   }, [dispatch, mutationStatus]);
-
-  useEffect(() => {
-    setPlaybackTime(0);
-  }, [activeSong?.id]);
-
-  useEffect(() => {
-    if (!selectedSongId) {
-      return;
-    }
-
-    const selectedSong = items.find((song) => song.id === selectedSongId);
-
-    if (selectedSong) {
-      setFocusedSong(selectedSong);
-    }
-  }, [items, selectedSongId]);
-
-  useEffect(() => {
-    if (!activeSong || !isPlaying) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setPlaybackTime((current) => {
-        const maxSeconds = Math.max(1, parseDuration(activeSong.duration));
-
-        if (current >= maxSeconds) {
-          if (isRepeat) {
-            return 0;
-          }
-
-          const currentIndex = items.findIndex((song) => song.id === activeSong.id);
-          const nextSong = items[currentIndex + 1] ?? items[0];
-
-          if (nextSong) {
-            setFocusedSong(nextSong);
-            setSelectedSongId(nextSong.id);
-          }
-
-          return 0;
-        }
-
-        return current + 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [activeSong, isPlaying, isRepeat, items]);
-
-  const selectSong = (song: Song) => {
-    setFocusedSong(song);
-    setSelectedSongId(song.id);
-    setIsPlaying(true);
-  };
-
-  const selectAdjacentSong = (direction: 1 | -1) => {
-    if (items.length === 0) {
-      return;
-    }
-
-    if (isShuffle) {
-      const nextIndex = Math.floor(Math.random() * items.length);
-      setFocusedSong(items[nextIndex]);
-      setSelectedSongId(items[nextIndex].id);
-      setPlaybackTime(0);
-      return;
-    }
-
-    const currentIndex = activeSong ? items.findIndex((song) => song.id === activeSong.id) : 0;
-    const nextIndex = (currentIndex + direction + items.length) % items.length;
-    setFocusedSong(items[nextIndex]);
-    setSelectedSongId(items[nextIndex].id);
-    setPlaybackTime(0);
-  };
 
   const goHome = () => {
     setActiveTab("home");
@@ -327,11 +227,7 @@ export const SongLibraryWorkspace = () => {
       return;
     }
 
-    if (songToDelete.id === selectedSongId) {
-      setSelectedSongId(null);
-      setFocusedSong(null);
-      setIsPlaying(false);
-    }
+    focusedSelection.clearFocusedSong(songToDelete.id);
 
     dispatch(deleteSongRequested({ id: songToDelete.id }));
   };
@@ -343,9 +239,6 @@ export const SongLibraryWorkspace = () => {
   const handleGenreChange = (genre: string) => {
     dispatch(fetchSongsRequested({ genre: genre === "All" ? "" : genre, page: 1 }));
   };
-
-  const durationSeconds = activeSong ? Math.max(1, parseDuration(activeSong.duration)) : 1;
-  const progressWidth = Math.min(100, (playbackTime / durationSeconds) * 100);
 
   return (
     <>
@@ -415,7 +308,7 @@ export const SongLibraryWorkspace = () => {
                         </p>
                       </HeroCopy>
                       <HeroActions>
-                        <PrimaryAction type="button" onClick={() => activeSong && selectSong(activeSong)}>
+                        <PrimaryAction type="button" onClick={() => activeSong && focusedSelection.focusSong(activeSong)}>
                           <Play size={14} fill="currentColor" /> Select Featured Song
                         </PrimaryAction>
                       </HeroActions>
@@ -460,12 +353,12 @@ export const SongLibraryWorkspace = () => {
                   </TopGrid>
 
                   <SongCatalogView
-                    activeSongId={activeSong?.id ?? null}
+                    activeSongId={focusedSelection.activeSongId}
                     fallbackArtwork={fallbackArtwork}
                     genre={query.genre}
                     genres={genres}
                     isFiltered={isFiltered}
-                    isPlaying={isPlaying}
+                    isPlaying={focusedSelection.isAdvancing}
                     items={items}
                     limit={limit}
                     onDeleteSong={openDeleteModal}
@@ -473,7 +366,7 @@ export const SongLibraryWorkspace = () => {
                     onGenreChange={handleGenreChange}
                     onPageChange={(nextPage) => dispatch(fetchSongsRequested({ page: nextPage }))}
                     onSearchChange={handleSearchChange}
-                    onSelectSong={selectSong}
+                    onSelectSong={focusedSelection.focusSong}
                     page={page}
                     searchText={searchText}
                     startItem={startItem}
@@ -485,92 +378,23 @@ export const SongLibraryWorkspace = () => {
               )}
             </ScrollPanel>
 
-            <PlayerFooter id="playback-footer-player">
-              {activeSong ? (
-                <>
-                  <NowPlaying>
-                    <Artwork
-                      src={activeSong.artworkUrl ?? fallbackArtwork}
-                      alt={`${activeSong.album} artwork`}
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <strong id="active-track-name">{activeSong.title}</strong>
-                      <span id="active-track-artist">
-                        {activeSong.artist} - {activeSong.genre}
-                      </span>
-                    </div>
-                  </NowPlaying>
-                  <Transport>
-                    <TransportButtons>
-                      <RoundIcon
-                        id="shuffle-btn"
-                        type="button"
-                        title="Shuffle visible Songs"
-                        $active={isShuffle}
-                        onClick={() => setIsShuffle((current) => !current)}
-                      >
-                        <Shuffle size={16} />
-                      </RoundIcon>
-                      <RoundIcon id="prev-btn" type="button" title="Previous Song" onClick={() => selectAdjacentSong(-1)}>
-                        <SkipBack size={16} />
-                      </RoundIcon>
-                      <PlayButton
-                        id="play-pause-btn"
-                        type="button"
-                        title={isPlaying ? "Pause local progress" : "Start local progress"}
-                        onClick={() => setIsPlaying((current) => !current)}
-                      >
-                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                      </PlayButton>
-                      <RoundIcon id="next-btn" type="button" title="Next Song" onClick={() => selectAdjacentSong(1)}>
-                        <SkipForward size={16} />
-                      </RoundIcon>
-                      <RoundIcon
-                        id="repeat-btn"
-                        type="button"
-                        title="Repeat selected Song"
-                        $active={isRepeat}
-                        onClick={() => setIsRepeat((current) => !current)}
-                      >
-                        <RefreshCw size={16} />
-                      </RoundIcon>
-                    </TransportButtons>
-                    <Timeline>
-                      <span>{formatTime(playbackTime)}</span>
-                      <ProgressTrack>
-                        <ProgressFill style={{ width: `${progressWidth}%` }} />
-                      </ProgressTrack>
-                      <span>{activeSong.duration}</span>
-                    </Timeline>
-                  </Transport>
-                  <Utilities>
-                    <RoundIcon
-                      id="like-btn"
-                      type="button"
-                      title="Mark selected Song"
-                      $active={isLiked}
-                      onClick={() => setIsLiked((current) => !current)}
-                    >
-                      <Heart size={17} fill={isLiked ? "currentColor" : "none"} />
-                    </RoundIcon>
-                    <VolumeControl>
-                      <Volume2 size={17} />
-                      <input
-                        id="volume-slider"
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={volume}
-                        onChange={(event) => setVolume(Number(event.target.value))}
-                      />
-                    </VolumeControl>
-                  </Utilities>
-                </>
-              ) : (
-                <EmptyFooter>Select any Song from your Library to focus it.</EmptyFooter>
-              )}
-            </PlayerFooter>
+            <FocusedSongFooter
+              fallbackArtwork={fallbackArtwork}
+              isAdvancing={focusedSelection.isAdvancing}
+              isMarked={focusedSelection.isMarked}
+              isRepeat={focusedSelection.isRepeat}
+              isShuffle={focusedSelection.isShuffle}
+              onSelectAdjacentSong={focusedSelection.selectAdjacentSong}
+              onToggleAdvancing={() => focusedSelection.setIsAdvancing((current) => !current)}
+              onToggleMarked={() => focusedSelection.setIsMarked((current) => !current)}
+              onToggleRepeat={() => focusedSelection.setIsRepeat((current) => !current)}
+              onToggleShuffle={() => focusedSelection.setIsShuffle((current) => !current)}
+              onVolumeChange={focusedSelection.setVolume}
+              progressPercent={focusedSelection.progressPercent}
+              selectionTime={focusedSelection.selectionTime}
+              song={activeSong}
+              volume={focusedSelection.volume}
+            />
 
             <FloatingAdd id="sidebar-create-btn" type="button" title="Add Song" onClick={openCreateModal}>
               <Plus size={21} />
@@ -1215,170 +1039,6 @@ const EmptyText = styled.p`
   color: var(--app-muted);
   font-size: 0.78rem;
   font-weight: 650;
-  font-style: italic;
-`;
-
-const Artwork = styled.img`
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  object-fit: cover;
-  border: 1px solid var(--app-border);
-  border-radius: ${({ theme }) => theme.radii.md}px;
-  background: var(--app-panel-subtle);
-`;
-
-const PlayerFooter = styled.footer`
-  min-height: 86px;
-  border-top: 1px solid var(--app-border);
-  display: grid;
-  grid-template-columns: minmax(200px, 0.9fr) minmax(260px, 1.4fr) minmax(160px, 0.8fr);
-  align-items: center;
-  gap: 18px;
-  background: var(--app-panel);
-  padding: 14px 24px;
-  flex-shrink: 0;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
-    z-index: 8;
-    min-height: 152px;
-    gap: 10px;
-    padding: 12px 16px;
-    box-shadow: var(--app-shadow-raised);
-  }
-`;
-
-const NowPlaying = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-
-  strong,
-  span {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  strong {
-    color: var(--app-text);
-    font-size: 0.84rem;
-    font-weight: 950;
-  }
-
-  span {
-    color: var(--app-muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-  }
-`;
-
-const Transport = styled.div`
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-`;
-
-const TransportButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 18px;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
-    gap: 12px;
-  }
-`;
-
-const RoundIcon = styled.button<{ $active?: boolean }>`
-  border: 0;
-  border-radius: ${({ theme }) => theme.radii.full}px;
-  display: grid;
-  place-items: center;
-  background: transparent;
-  color: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-text-secondary)")};
-  padding: 6px;
-
-  &:hover {
-    background: var(--app-panel-subtle);
-    color: var(--app-text);
-  }
-`;
-
-const PlayButton = styled(RoundIcon)`
-  width: 42px;
-  height: 42px;
-  background: var(--app-inverse);
-  color: var(--app-inverse-text);
-  box-shadow: var(--app-shadow-raised);
-
-  &:hover {
-    background: var(--app-inverse);
-    color: var(--app-inverse-text);
-  }
-`;
-
-const Timeline = styled.div`
-  width: 100%;
-  max-width: 560px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--app-muted);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.62rem;
-  font-weight: 900;
-`;
-
-const ProgressTrack = styled.div`
-  height: 6px;
-  flex: 1;
-  overflow: hidden;
-  border-radius: ${({ theme }) => theme.radii.full}px;
-  background: var(--app-panel-subtle);
-`;
-
-const ProgressFill = styled.div`
-  height: 100%;
-  border-radius: inherit;
-  background: var(--app-brand);
-`;
-
-const Utilities = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 16px;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
-    justify-content: space-between;
-  }
-`;
-
-const VolumeControl = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--app-muted);
-
-  input {
-    width: 112px;
-    accent-color: var(--app-brand);
-  }
-`;
-
-const EmptyFooter = styled.div`
-  grid-column: 1 / -1;
-  text-align: center;
-  color: var(--app-muted);
-  font-size: 0.78rem;
-  font-weight: 750;
   font-style: italic;
 `;
 

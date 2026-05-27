@@ -441,6 +441,56 @@ describe("App", () => {
     expect(within(footer as HTMLElement).queryByText("Select any Song from your Library to focus it.")).toBeNull();
   });
 
+  it("keeps focused Song footer controls behavior local to the catalogue view", () => {
+    vi.useFakeTimers();
+
+    try {
+      renderApp({ songs: appState() });
+
+      fireEvent.click(screen.getAllByRole("row")[1]);
+
+      const footer = document.getElementById("playback-footer-player") as HTMLElement;
+      expect(within(footer).getByText("Tizita")).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(within(footer).getByText("0:01")).toBeTruthy();
+
+      fireEvent.click(within(footer).getByTitle("Next Song"));
+      expect(within(footer).getByText("Yene Habesha")).toBeTruthy();
+      expect(within(footer).getByText("0:00")).toBeTruthy();
+
+      fireEvent.click(within(footer).getByTitle("Previous Song"));
+      expect(within(footer).getByText("Tizita")).toBeTruthy();
+
+      const repeatButton = within(footer).getByRole("button", { name: "Repeat selected Song" });
+      const shuffleButton = within(footer).getByRole("button", { name: "Shuffle visible Songs" });
+      const markButton = within(footer).getByRole("button", { name: "Mark selected Song" });
+      const progressButton = within(footer).getByRole("button", { name: "Pause local progress" });
+
+      fireEvent.click(repeatButton);
+      fireEvent.click(shuffleButton);
+      fireEvent.click(markButton);
+      fireEvent.click(progressButton);
+
+      expect(repeatButton.getAttribute("aria-pressed")).toBe("true");
+      expect(shuffleButton.getAttribute("aria-pressed")).toBe("true");
+      expect(markButton.getAttribute("aria-pressed")).toBe("true");
+      expect(within(footer).getByRole("button", { name: "Start local progress" }).getAttribute("aria-pressed")).toBe(
+        "false"
+      );
+
+      const volumeSlider = within(footer).getByRole("slider") as HTMLInputElement;
+      fireEvent.change(volumeSlider, { target: { value: "35" } });
+
+      expect(volumeSlider.value).toBe("35");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("defaults to the system theme and stores a user theme toggle", () => {
     vi.stubGlobal("matchMedia", (query: string) => ({
       matches: query === "(prefers-color-scheme: dark)",
