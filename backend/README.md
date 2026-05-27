@@ -9,7 +9,7 @@ Create `backend/.env` from `backend/.env.example`.
 - `NODE_ENV`: runtime mode (`development` by default)
 - `PORT`: HTTP port (`4000` by default)
 - `MONGODB_URI`: MongoDB connection URI (local default `mongodb://localhost:27017/song-library`)
-- `CORS_ORIGIN`: allowed frontend origin (local default `http://localhost:5173`)
+- `CORS_ORIGIN`: allowed frontend origin without a trailing slash (local default `http://localhost:5173`)
 
 ## Commands
 
@@ -71,7 +71,7 @@ Production container image definition lives at `backend/Dockerfile`.
 2. Configure Render to build using `backend/Dockerfile`.
 3. Set environment variables:
 - `MONGODB_URI`: managed MongoDB connection (for example MongoDB Atlas), not Docker Compose.
-- `CORS_ORIGIN`: deployed frontend origin.
+- `CORS_ORIGIN`: deployed frontend origin, for example `https://your-frontend.vercel.app`.
 - `NODE_ENV=production`.
 4. Port behavior:
 - The backend listens on `process.env.PORT` when provided.
