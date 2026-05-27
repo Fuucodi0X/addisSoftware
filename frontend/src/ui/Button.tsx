@@ -90,7 +90,7 @@ const getToneColors = ({ theme, tone }: { theme: AppTheme; tone: ButtonTone }) =
       fill: theme.colors.action.primary,
       fillHover: theme.colors.action.primaryHover,
       soft: theme.colors.surface.panelSubtle,
-      softHover: theme.palette.zinc[100],
+      softHover: theme.colors.border.default,
       text: theme.colors.text.primary
     },
     success: {
