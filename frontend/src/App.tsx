@@ -5,7 +5,6 @@ import {
   Award,
   BarChart2,
   Disc,
-  Filter,
   Heart,
   Layers,
   Moon,
@@ -14,22 +13,19 @@ import {
   Play,
   Plus,
   RefreshCw,
-  Search,
   Shuffle,
   SkipBack,
   SkipForward,
   Sun,
   Tag,
-  Trash2,
   User,
-  Volume2,
-  X,
-  Edit
+  Volume2
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useColorScheme } from "./design/DesignSystemProvider";
 import { DeleteSongModal } from "./features/songs/components/DeleteSongModal";
+import { SongCatalogView } from "./features/songs/components/SongCatalogView";
 import { SongFormModal } from "./features/songs/components/SongFormModal";
 import {
   clearSongMutationState,
@@ -221,7 +217,6 @@ export const App = () => {
     [formErrors, mutationError]
   );
   const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
-  const endItem = Math.min(page * limit, totalItems);
   const isInitialSongsLoading = status === "loading" && !hasLoadedSongs;
 
   useEffect(() => {
@@ -425,8 +420,6 @@ export const App = () => {
     dispatch(fetchSongsRequested({ genre: genre === "All" ? "" : genre, page: 1 }));
   };
 
-  const pageNumbers = Array.from({ length: Math.max(totalPages, 1) }, (_, index) => index + 1);
-  const emptyRows = Math.max(0, 5 - items.length);
   const durationSeconds = activeSong ? Math.max(1, parseDuration(activeSong.duration)) : 1;
   const progressWidth = Math.min(100, (playbackTime / durationSeconds) * 100);
 
@@ -542,192 +535,28 @@ export const App = () => {
                     </ArtistPanel>
                   </TopGrid>
 
-                  <CatalogCard>
-                    <CatalogHeader>
-                      <div>
-                        <h2>Song Catalog</h2>
-                        <span>
-                          Telemetry: {startItem}-{endItem} of {totalItems} indexed Songs
-                        </span>
-                      </div>
-                      <Controls>
-                        <SearchShell>
-                          <Search size={15} />
-                          <input
-                            id="catalog-search-input"
-                            type="search"
-                            aria-label="Search Songs"
-                            value={searchText}
-                            onChange={(event) => handleSearchChange(event.target.value)}
-                            placeholder="Search Songs..."
-                          />
-                          {searchText ? (
-                            <ClearSearchButton
-                              type="button"
-                              aria-label="Clear search"
-                              onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => handleSearchChange("")}
-                            >
-                              <X size={13} />
-                            </ClearSearchButton>
-                          ) : null}
-                        </SearchShell>
-                        <Divider />
-                        <GenreControls>
-                          <Filter size={15} />
-                          <strong>Genres:</strong>
-                          <GenreScroller>
-                            {["All", ...genres].slice(0, 6).map((genre) => (
-                              <GenreButton
-                                id={`filter-genre-pill-${genre}`}
-                                key={genre}
-                                type="button"
-                                $active={(genre === "All" && !query.genre) || query.genre === genre}
-                                onClick={() => handleGenreChange(genre)}
-                              >
-                                {genre}
-                              </GenreButton>
-                            ))}
-                          </GenreScroller>
-                        </GenreControls>
-                      </Controls>
-                    </CatalogHeader>
-
-                    <TableShell>
-                      <SongTable aria-label="Song Catalog">
-                        <thead>
-                          <tr>
-                            <th># Title</th>
-                            <th>Artist Name</th>
-                            <th>Genre Category</th>
-                            <th>Duration</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.length === 0 ? (
-                            <tr>
-                              <td colSpan={5}>
-                                <EmptyTableText>
-                                  {isFiltered
-                                    ? "No Songs match your query in this scope."
-                                    : "No Songs have been added yet."}
-                                </EmptyTableText>
-                              </td>
-                            </tr>
-                          ) : (
-                            items.map((song, index) => {
-                              const isSelected = activeSong?.id === song.id;
-
-                              return (
-                                <SongRow key={song.id} $selected={isSelected} onClick={() => selectSong(song)}>
-                                  <td>
-                                    <TitleCell>
-                                      <IndexCell>
-                                        {isSelected && isPlaying ? (
-                                          <Equalizer aria-label="Selected Song">
-                                            <span />
-                                            <span />
-                                            <span />
-                                          </Equalizer>
-                                        ) : (
-                                          (page - 1) * limit + index + 1
-                                        )}
-                                      </IndexCell>
-                                      <Artwork
-                                        src={song.artworkUrl ?? fallbackArtwork}
-                                        alt={`${song.album} artwork`}
-                                        referrerPolicy="no-referrer"
-                                      />
-                                      <TitleText>
-                                        <strong>{song.title}</strong>
-                                        <span>{song.album}</span>
-                                        <MobileMetadata>
-                                          {song.album}
-                                          <MetadataDot aria-hidden="true">•</MetadataDot>
-                                          {song.genre}
-                                          <MetadataDot aria-hidden="true">•</MetadataDot>
-                                          {song.duration}
-                                        </MobileMetadata>
-                                      </TitleText>
-                                    </TitleCell>
-                                  </td>
-                                  <td>{song.artist}</td>
-                                  <td>
-                                    <GenreLabel>{song.genre}</GenreLabel>
-                                  </td>
-                                  <td>
-                                    <DurationText>{song.duration}</DurationText>
-                                  </td>
-                                  <td onClick={(event) => event.stopPropagation()}>
-                                    <RowActions>
-                                      <IconTextButton
-                                        id={`edit-song-btn-${song.id}`}
-                                        type="button"
-                                        title="Edit Song"
-                                        onClick={() => openEditModal(song)}
-                                      >
-                                        <Edit size={15} />
-                                        <span>Edit</span>
-                                      </IconTextButton>
-                                      <IconTextButton
-                                        id={`del-song-btn-${song.id}`}
-                                        type="button"
-                                        title="Delete Song"
-                                        $danger
-                                        onClick={() => openDeleteModal(song)}
-                                      >
-                                        <Trash2 size={15} />
-                                        <span>Del</span>
-                                      </IconTextButton>
-                                    </RowActions>
-                                  </td>
-                                </SongRow>
-                              );
-                            })
-                          )}
-                          {Array.from({ length: emptyRows }).map((_, index) => (
-                            <EmptyRow key={index}>
-                              <td colSpan={5} />
-                            </EmptyRow>
-                          ))}
-                        </tbody>
-                      </SongTable>
-                    </TableShell>
-
-                    <Pagination>
-                      <span>
-                        Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of{" "}
-                        <strong>{totalItems}</strong> Songs
-                      </span>
-                      <PageControls>
-                        <PageButton
-                          type="button"
-                          disabled={page <= 1 || status === "loading"}
-                          onClick={() => dispatch(fetchSongsRequested({ page: page - 1 }))}
-                        >
-                          Prev
-                        </PageButton>
-                        {pageNumbers.map((pageNumber) => (
-                          <PageNumber
-                            key={pageNumber}
-                            type="button"
-                            $active={pageNumber === page}
-                            onClick={() => dispatch(fetchSongsRequested({ page: pageNumber }))}
-                          >
-                            {pageNumber}
-                          </PageNumber>
-                        ))}
-                        <PageButton
-                          type="button"
-                          disabled={page >= totalPages || status === "loading"}
-                          onClick={() => dispatch(fetchSongsRequested({ page: page + 1 }))}
-                        >
-                          Next
-                        </PageButton>
-                      </PageControls>
-                    </Pagination>
-                  </CatalogCard>
+                  <SongCatalogView
+                    activeSongId={activeSong?.id ?? null}
+                    fallbackArtwork={fallbackArtwork}
+                    genre={query.genre}
+                    genres={genres}
+                    isFiltered={isFiltered}
+                    isPlaying={isPlaying}
+                    items={items}
+                    limit={limit}
+                    onDeleteSong={openDeleteModal}
+                    onEditSong={openEditModal}
+                    onGenreChange={handleGenreChange}
+                    onPageChange={(nextPage) => dispatch(fetchSongsRequested({ page: nextPage }))}
+                    onSearchChange={handleSearchChange}
+                    onSelectSong={selectSong}
+                    page={page}
+                    searchText={searchText}
+                    startItem={startItem}
+                    status={status}
+                    totalItems={totalItems}
+                    totalPages={totalPages}
+                  />
                 </HomeView>
               )}
             </ScrollPanel>
@@ -1465,287 +1294,6 @@ const EmptyText = styled.p`
   font-style: italic;
 `;
 
-const CatalogCard = styled.section`
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--app-border);
-  border-radius: 28px;
-  background: var(--app-panel);
-  box-shadow: var(--app-shadow-soft);
-
-  @media (max-width: 560px) {
-    border-radius: 24px;
-  }
-`;
-
-const CatalogHeader = styled.header`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 20px;
-  border-bottom: 1px solid var(--app-border-subtle);
-
-  h2 {
-    margin: 0;
-    color: var(--app-inverse);
-    font-size: 0.88rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  span {
-    color: var(--app-muted);
-    font-size: 0.66rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  @media (max-width: 980px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`;
-
-const Controls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-
-  @media (max-width: 760px) {
-    width: 100%;
-    align-items: stretch;
-    flex-direction: column;
-  }
-`;
-
-const SearchShell = styled.label`
-  height: 34px;
-  width: 210px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background: var(--app-panel-subtle);
-  padding: 0 12px;
-  color: var(--app-muted);
-
-  input {
-    min-width: 0;
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--app-text);
-    font-size: 0.72rem;
-    font-weight: 750;
-  }
-
-  input::-webkit-search-cancel-button {
-    display: none;
-  }
-
-  @media (max-width: 760px) {
-    width: 100%;
-  }
-`;
-
-const ClearSearchButton = styled.button`
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  background: var(--app-border);
-  color: var(--app-text-secondary);
-  padding: 0;
-
-  &:hover {
-    background: var(--app-border-strong);
-    color: var(--app-text);
-  }
-`;
-
-const Divider = styled.div`
-  width: 1px;
-  height: 18px;
-  background: var(--app-border);
-
-  @media (max-width: 760px) {
-    display: none;
-  }
-`;
-
-const GenreControls = styled.div`
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--app-muted);
-
-  strong {
-    color: var(--app-muted);
-    font-size: 0.64rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  @media (max-width: 760px) {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-`;
-
-const GenreScroller = styled.div`
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-`;
-
-const GenreButton = styled.button<{ $active?: boolean }>`
-  border: 0;
-  border-radius: 999px;
-  padding: 5px 11px;
-  background: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-panel-subtle)")};
-  color: ${({ $active }) => ($active ? "var(--app-on-brand)" : "var(--app-text-secondary)")};
-  font-size: 0.62rem;
-  font-weight: 950;
-  text-transform: uppercase;
-  white-space: nowrap;
-`;
-
-const TableShell = styled.div`
-  overflow-x: auto;
-`;
-
-const SongTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--app-text-secondary);
-  font-size: 0.78rem;
-
-  th {
-    padding: 13px 20px;
-    background: var(--app-panel-subtle);
-    border-bottom: 1px solid var(--app-border);
-    color: var(--app-muted);
-    font-size: 0.58rem;
-    font-weight: 950;
-    text-align: left;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-  }
-
-  td {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--app-panel-subtle);
-  }
-
-  th:last-of-type,
-  td:last-of-type {
-    text-align: right;
-  }
-
-  @media (max-width: 1180px) {
-    min-width: 0;
-
-    th:nth-of-type(3),
-    td:nth-of-type(3),
-    th:nth-of-type(4),
-    td:nth-of-type(4) {
-      display: none;
-    }
-
-    th,
-    td {
-      padding: 12px;
-    }
-  }
-  @media (max-width: 760px) {
-    th:nth-of-type(2),
-    td:nth-of-type(2) {
-      display: none;
-    }
-  }
-`;
-
-const SongRow = styled.tr<{ $selected?: boolean }>`
-  background: ${({ $selected }) => ($selected ? "var(--app-selected-row)" : "var(--app-panel)")};
-  transition: background 150ms ease;
-
-  &:hover {
-    background: ${({ $selected }) => ($selected ? "var(--app-selected-row-hover)" : "var(--app-panel-subtle)")};
-  }
-`;
-
-const TitleCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 220px;
-
-  @media (max-width: 1180px) {
-    min-width: 0;
-  }
-`;
-
-const IndexCell = styled.span`
-  width: 22px;
-  display: inline-flex;
-  justify-content: center;
-  color: var(--app-muted);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.68rem;
-  font-weight: 800;
-`;
-
-const Equalizer = styled.span`
-  height: 14px;
-  display: inline-flex;
-  align-items: end;
-  gap: 2px;
-
-  span {
-    width: 2px;
-    border-radius: 999px;
-    background: var(--app-brand);
-    animation: pulse-bar 780ms infinite ease-in-out alternate;
-  }
-
-  span:nth-of-type(1) {
-    height: 8px;
-  }
-
-  span:nth-of-type(2) {
-    height: 13px;
-    animation-delay: 120ms;
-  }
-
-  span:nth-of-type(3) {
-    height: 6px;
-    animation-delay: 240ms;
-  }
-
-  @keyframes pulse-bar {
-    from {
-      transform: scaleY(0.55);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-`;
-
 const Artwork = styled.img`
   width: 42px;
   height: 42px;
@@ -1754,181 +1302,6 @@ const Artwork = styled.img`
   border: 1px solid var(--app-border);
   border-radius: 12px;
   background: var(--app-panel-subtle);
-`;
-
-const TitleText = styled.div`
-  min-width: 0;
-
-  strong {
-    display: block;
-    max-width: min(230px, 42vw);
-    overflow: hidden;
-    color: var(--app-text);
-    font-size: 0.84rem;
-    font-weight: 900;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  > span {
-    display: block;
-    max-width: min(230px, 42vw);
-    overflow: hidden;
-    color: var(--app-muted);
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 1180px) {
-    > span {
-      display: none;
-    }
-  }
-`;
-
-const GenreLabel = styled.span`
-  display: inline-flex;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background: var(--app-panel-subtle);
-  padding: 5px 9px;
-  color: var(--app-text-secondary);
-  font-size: 0.62rem;
-  font-weight: 950;
-  text-transform: uppercase;
-`;
-
-const DurationText = styled.span`
-  color: var(--app-muted);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.72rem;
-  font-weight: 900;
-`;
-
-const MobileMetadata = styled.small`
-  display: none;
-  align-items: center;
-  gap: 5px;
-  max-width: min(230px, 42vw);
-  overflow: hidden;
-  color: var(--app-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  @media (max-width: 1180px) {
-    display: flex;
-  }
-`;
-
-const MetadataDot = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--app-muted);
-  font-size: 0.8em;
-  font-weight: 950;
-  line-height: 1;
-`;
-
-const RowActions = styled.div`
-  display: inline-flex;
-  justify-content: flex-end;
-  gap: 8px;
-
-  @media (max-width: 760px) {
-    gap: 2px;
-  }
-`;
-
-const IconTextButton = styled.button<{ $danger?: boolean }>`
-  border: 0;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  color: ${({ $danger }) => ($danger ? "var(--app-text-secondary)" : "var(--app-text-secondary)")};
-  padding: 7px 8px;
-  font-size: 0.68rem;
-  font-weight: 850;
-
-  &:hover {
-    background: ${({ $danger }) => ($danger ? "var(--app-brand-soft)" : "var(--app-panel-subtle)")};
-    color: ${({ $danger }) => ($danger ? "var(--app-brand)" : "var(--app-text)")};
-  }
-
-  @media (max-width: 760px) {
-    width: 32px;
-    height: 32px;
-    justify-content: center;
-    padding: 0;
-
-    span {
-      display: none;
-    }
-  }
-`;
-
-const EmptyTableText = styled.div`
-  padding: 24px;
-  text-align: center;
-  color: var(--app-muted);
-  font-weight: 700;
-`;
-
-const EmptyRow = styled.tr`
-  height: 42px;
-`;
-
-const Pagination = styled.footer`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--app-border);
-  background: var(--app-panel-subtle);
-  color: var(--app-muted);
-  font-size: 0.72rem;
-  font-weight: 750;
-
-  @media (max-width: 760px) {
-    align-items: stretch;
-    flex-direction: column;
-  }
-`;
-
-const PageControls = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
-const PageButton = styled.button`
-  border: 1px solid var(--app-border);
-  border-radius: 10px;
-  background: var(--app-panel);
-  color: var(--app-text-secondary);
-  padding: 6px 10px;
-  font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
-
-  &:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
-  }
-`;
-
-const PageNumber = styled(PageButton)<{ $active?: boolean }>`
-  min-width: 28px;
-  padding: 6px;
-  background: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-panel)")};
-  border-color: ${({ $active }) => ($active ? "var(--app-brand)" : "var(--app-border)")};
-  color: ${({ $active }) => ($active ? "var(--app-on-brand)" : "var(--app-text-secondary)")};
 `;
 
 const PlayerFooter = styled.footer`
