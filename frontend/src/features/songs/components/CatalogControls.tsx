@@ -53,7 +53,7 @@ export const CatalogControls = ({
           ))}
         </select>
       </label>
-      <Button className="add-song-button" variant="primary" onClick={onAddSong}>
+      <Button className="add-song-button" variant="solid" onClick={onAddSong}>
         Add Song
       </Button>
     </div>

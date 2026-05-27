@@ -5,7 +5,6 @@ import type { AppTheme } from "../design/theme";
 export type ButtonVariant = "solid" | "soft" | "outline" | "ghost";
 export type ButtonTone = "neutral" | "accent" | "danger" | "success" | "warning";
 export type ButtonSize = "sm" | "md" | "lg";
-type LegacyButtonVariant = "primary" | "secondary" | "danger";
 
 type NativeButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color">;
 
@@ -13,7 +12,7 @@ export interface ButtonProps extends NativeButtonProps {
   children: ReactNode;
   size?: ButtonSize;
   tone?: ButtonTone;
-  variant?: ButtonVariant | LegacyButtonVariant;
+  variant?: ButtonVariant;
 }
 
 export type IconButtonShape = "rounded" | "circle";
@@ -33,12 +32,6 @@ interface ButtonRecipe {
   hoverColor: string;
   shadow: string;
 }
-
-const legacyVariantDefaults: Record<LegacyButtonVariant, { variant: ButtonVariant; tone: ButtonTone }> = {
-  danger: { variant: "solid", tone: "danger" },
-  primary: { variant: "solid", tone: "neutral" },
-  secondary: { variant: "outline", tone: "neutral" }
-};
 
 const buttonSizes: Record<
   ButtonSize,
@@ -75,17 +68,6 @@ const buttonSizes: Record<
     inlinePadding: 6,
     minHeight: 48
   }
-};
-
-const resolveButtonState = (variant: ButtonProps["variant"], tone: ButtonTone) => {
-  if (variant === "primary" || variant === "secondary" || variant === "danger") {
-    return legacyVariantDefaults[variant];
-  }
-
-  return {
-    variant: variant ?? "outline",
-    tone
-  };
 };
 
 const getToneColors = ({ theme, tone }: { theme: AppTheme; tone: ButtonTone }) => {
@@ -256,10 +238,8 @@ const StyledRoundIconButton = styled(StyledIconButton)(({ theme }) => ({
 }));
 
 export const Button = ({ children, size = "md", tone = "neutral", type = "button", variant, ...props }: ButtonProps) => {
-  const resolved = resolveButtonState(variant, tone);
-
   return (
-    <StyledButton $size={size} $tone={resolved.tone} $variant={resolved.variant} type={type} {...props}>
+    <StyledButton $size={size} $tone={tone} $variant={variant ?? "outline"} type={type} {...props}>
       {children}
     </StyledButton>
   );
@@ -274,11 +254,10 @@ export const IconButton = ({
   variant = "ghost",
   ...props
 }: IconButtonProps) => {
-  const resolved = resolveButtonState(variant, tone);
   const Component = shape === "circle" ? StyledRoundIconButton : StyledIconButton;
 
   return (
-    <Component $size={size} $tone={resolved.tone} $variant={resolved.variant} type={type} {...props}>
+    <Component $size={size} $tone={tone} $variant={variant} type={type} {...props}>
       {children}
     </Component>
   );

@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { DesignSystemProvider } from "../design/DesignSystemProvider";
 import { Badge } from "./Badge";
+import { Button } from "./Button";
+import { Modal } from "./Modal";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "./Panel";
 import {
   Table,
@@ -48,6 +50,32 @@ describe("UI components", () => {
 
     expect(screen.getByText("Genre")).toBeTruthy();
     expect(screen.getByText("12 Songs")).toBeTruthy();
+  });
+
+  it("renders Button through tokenized variant and tone props", () => {
+    renderWithTheme(
+      <Button variant="solid" tone="danger">
+        Delete Song
+      </Button>
+    );
+
+    expect(screen.getByRole("button", { name: "Delete Song" })).toBeTruthy();
+  });
+
+  it("renders Modal without stale modal class hooks", () => {
+    renderWithTheme(
+      <Modal title="Edit Song" labelledBy="edit-song-title" onClose={() => undefined}>
+        <p>Song form</p>
+      </Modal>
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Edit Song" });
+    const staleModalNodes = Array.from(document.querySelectorAll("[class]")).filter((node) =>
+      Array.from(node.classList).some((className) => className.startsWith("modal-"))
+    );
+
+    expect(dialog).toBeTruthy();
+    expect(staleModalNodes).toHaveLength(0);
   });
 
   it("renders responsive Table primitives with labelled cells and empty states", () => {

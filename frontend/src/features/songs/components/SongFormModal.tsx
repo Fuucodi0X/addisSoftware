@@ -51,7 +51,7 @@ export const SongFormModal = ({
       </FeedbackInset>
     ) : null}
 
-    <SongForm className="song-form" onSubmit={onSubmit}>
+    <SongForm onSubmit={onSubmit}>
       <ArtworkField>
         <FieldLabel>
           <Image size={15} aria-hidden="true" /> Artwork URL
@@ -164,11 +164,11 @@ export const SongFormModal = ({
           required
         />
       </Field>
-      <Actions className="modal-actions">
+      <Actions>
         <Button id="cancel-song-btn" onClick={onClose} disabled={isMutating}>
           Cancel
         </Button>
-        <Button id="submit-song-btn" variant="primary" type="submit" disabled={isMutating}>
+        <Button id="submit-song-btn" variant="solid" type="submit" disabled={isMutating}>
           {isMutating ? "Saving" : actionLabel}
         </Button>
       </Actions>

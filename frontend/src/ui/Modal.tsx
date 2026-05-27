@@ -55,16 +55,15 @@ const Header = styled.div<{ $tone: "neutral" | "danger" }>(({ theme, $tone }) =>
 }));
 
 export const Modal = ({ title, children, onClose, labelledBy, size = "form", tone = "neutral" }: ModalProps) => (
-  <Backdrop className="modal-backdrop" role="presentation">
+  <Backdrop role="presentation">
     <Panel
-      className={`modal-panel modal-${size}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={labelledBy}
       $size={size}
       $tone={tone}
     >
-      <Header className="modal-heading" $tone={tone}>
+      <Header $tone={tone}>
         <h2 id={labelledBy}>{title}</h2>
         <IconButton size="sm" variant="ghost" tone={tone} onClick={onClose} aria-label={`Close ${title}`}>
           <X aria-hidden="true" />

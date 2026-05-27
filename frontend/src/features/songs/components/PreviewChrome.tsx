@@ -26,7 +26,7 @@ export const PreviewChrome = ({ apiBaseUrl, song }: PreviewChromeProps) => (
         </div>
         <div className="preview-controls" aria-hidden="true">
           <Button variant="ghost">Back</Button>
-          <Button variant="primary">Preview</Button>
+          <Button variant="solid">Preview</Button>
           <Button variant="ghost">Next</Button>
         </div>
         <div className="preview-motion" aria-hidden="true">

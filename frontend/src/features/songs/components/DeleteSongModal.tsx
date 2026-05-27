@@ -32,9 +32,9 @@ export const DeleteSongModal = ({
           <small>{song.album}</small>
         </DeleteSongMeta>
       </DeletePreview>
-      <p className="confirm-copy">
+      <ConfirmCopy>
         Delete <strong>{song.title}</strong> by {song.artist} from the Song Library?
-      </p>
+      </ConfirmCopy>
       <DeleteWarning>
         <AlertTriangle size={16} aria-hidden="true" />
         <div>
@@ -47,7 +47,7 @@ export const DeleteSongModal = ({
           <p>{error}</p>
         </FormFeedback>
       ) : null}
-      <Actions className="modal-actions">
+      <Actions>
         <Button onClick={onClose} disabled={isMutating}>
           Cancel
         </Button>
@@ -64,16 +64,16 @@ const ConfirmBody = styled.div(({ theme }) => ({
   gap: theme.space[5],
   padding: theme.space[7],
 
-  ".confirm-copy": {
-    color: theme.colors.text.secondary,
-    fontSize: theme.fontSizes.md,
-    lineHeight: theme.lineHeights.body,
-    margin: 0
-  },
-
   strong: {
     color: theme.colors.text.primary
   }
+}));
+
+const ConfirmCopy = styled.p(({ theme }) => ({
+  color: theme.colors.text.secondary,
+  fontSize: theme.fontSizes.md,
+  lineHeight: theme.lineHeights.body,
+  margin: 0
 }));
 
 const DeletePreview = styled.div(({ theme }) => ({
