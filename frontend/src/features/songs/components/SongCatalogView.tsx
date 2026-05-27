@@ -520,7 +520,7 @@ const Table = styled.table(({ theme }) => ({
   }
 }));
 
-const CatalogColumnGroup = styled.colgroup({
+const CatalogColumnGroup = styled.colgroup(({ theme }) => ({
   ".title-column": {
     width: "36%"
   },
@@ -535,8 +535,23 @@ const CatalogColumnGroup = styled.colgroup({
   },
   ".actions-column": {
     width: "18%"
+  },
+
+  [`@media (max-width: ${theme.breakpoints[3]})`]: {
+    ".title-column": {
+      width: "54%"
+    },
+    ".artist-column": {
+      width: "24%"
+    },
+    ".genre-column, .duration-column": {
+      display: "none"
+    },
+    ".actions-column": {
+      width: "22%"
+    }
   }
-});
+}));
 
 const SongRow = styled.tr<{ $selected?: boolean }>(({ theme, $selected }) => ({
   background: $selected ? theme.colors.selection.row : theme.colors.surface.panel,
