@@ -108,6 +108,13 @@ export const SongCatalogView = ({
 
       <TableShell>
         <Table aria-label="Song Catalog">
+          <CatalogColumnGroup>
+            <col className="title-column" />
+            <col className="artist-column" />
+            <col className="genre-column" />
+            <col className="duration-column" />
+            <col className="actions-column" />
+          </CatalogColumnGroup>
           <thead>
             <tr>
               <th># Title</th>
@@ -411,6 +418,7 @@ const Table = styled.table(({ theme }) => ({
   borderCollapse: "collapse",
   color: theme.colors.text.secondary,
   fontSize: theme.fontSizes.sm,
+  tableLayout: "fixed",
   width: "100%",
 
   th: {
@@ -434,8 +442,14 @@ const Table = styled.table(({ theme }) => ({
     textAlign: "right"
   },
 
+  "td:not(:first-of-type)": {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+
   [`@media (max-width: ${theme.breakpoints[3]})`]: {
-    minWidth: 0,
+    minWidth: theme.space[13] * 10,
 
     "th:nth-of-type(3), td:nth-of-type(3), th:nth-of-type(4), td:nth-of-type(4)": {
       display: "none"
@@ -452,6 +466,24 @@ const Table = styled.table(({ theme }) => ({
     }
   }
 }));
+
+const CatalogColumnGroup = styled.colgroup({
+  ".title-column": {
+    width: "36%"
+  },
+  ".artist-column": {
+    width: "16%"
+  },
+  ".genre-column": {
+    width: "18%"
+  },
+  ".duration-column": {
+    width: "12%"
+  },
+  ".actions-column": {
+    width: "18%"
+  }
+});
 
 const SongRow = styled.tr<{ $selected?: boolean }>(({ theme, $selected }) => ({
   background: $selected ? theme.colors.selection.row : theme.colors.surface.panel,
