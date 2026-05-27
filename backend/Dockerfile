@@ -2,17 +2,15 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-RUN corepack enable
-
 COPY package.json ./
-RUN pnpm install --frozen-lockfile=false
+RUN npm install
 
 FROM deps AS build
 
 COPY tsconfig.json ./
 COPY src ./src
 
-RUN pnpm build
+RUN npm run build
 
 FROM node:22-alpine AS runtime
 
@@ -20,13 +18,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN corepack enable
-
 COPY package.json ./
-RUN pnpm install --prod --frozen-lockfile=false
+RUN npm install --omit=dev
 
 COPY --from=build /app/dist ./dist
 
 EXPOSE 4000
 
-CMD ["pnpm", "start"]
+CMD ["npm", "start"]
