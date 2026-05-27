@@ -627,6 +627,8 @@ export const App = () => {
                                         <MobileMetadata>
                                           {song.album}
                                           <MetadataDot aria-hidden="true">•</MetadataDot>
+                                          {song.genre}
+                                          <MetadataDot aria-hidden="true">•</MetadataDot>
                                           {song.duration}
                                         </MobileMetadata>
                                       </TitleText>
@@ -1622,11 +1624,9 @@ const SongTable = styled.table`
     text-align: right;
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 1180px) {
     min-width: 0;
 
-    th:nth-of-type(2),
-    td:nth-of-type(2),
     th:nth-of-type(3),
     td:nth-of-type(3),
     th:nth-of-type(4),
@@ -1637,6 +1637,12 @@ const SongTable = styled.table`
     th,
     td {
       padding: 12px;
+    }
+  }
+  @media (max-width: 760px) {
+    th:nth-of-type(2),
+    td:nth-of-type(2) {
+      display: none;
     }
   }
 `;
@@ -1656,7 +1662,7 @@ const TitleCell = styled.div`
   gap: 12px;
   min-width: 220px;
 
-  @media (max-width: 760px) {
+  @media (max-width: 1180px) {
     min-width: 0;
   }
 `;
@@ -1743,7 +1749,7 @@ const TitleText = styled.div`
     white-space: nowrap;
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 1180px) {
     > span {
       display: none;
     }
@@ -1781,7 +1787,7 @@ const MobileMetadata = styled.small`
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  @media (max-width: 760px) {
+  @media (max-width: 1180px) {
     display: flex;
   }
 `;
