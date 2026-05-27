@@ -33,107 +33,27 @@ import {
   deleteSongRequested,
   fetchSongsRequested,
   fetchStatsRequested,
-  SONG_GENRES,
   updateSongRequested,
   type Song,
-  type SongLibraryStats,
-  type SongMutationPayload
+  type SongLibraryStats
 } from "../../store/songsSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import { IconButton } from "../../ui/Button";
-
-const fallbackArtwork =
-  "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=240&auto=format&fit=crop&q=80";
-
-const artworkPresets = [
+import {
+  artworkPresets,
+  emptySongForm,
   fallbackArtwork,
-  "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=240&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=240&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=240&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=240&auto=format&fit=crop&q=80"
-];
+  getClearedSongFormState,
+  getCreateSongFormValues,
+  getSongFormValues,
+  getSongModalActionLabel,
+  getSongModalTitle,
+  getSongPayload,
+  type SongFormValues,
+  type SongModalState
+} from "./songMutationForm";
 
-const emptySongForm = {
-  title: "",
-  artist: "",
-  album: "",
-  genre: "",
-  duration: "",
-  artworkUrl: artworkPresets[0]
-};
-
-type SongFormValues = typeof emptySongForm;
-type SongModalState = { mode: "create"; song?: undefined } | { mode: "edit"; song: Song };
 type AppTab = "home" | "stats";
-
-const songFieldLimits = {
-  title: 120,
-  artist: 120,
-  album: 120,
-  genre: 80,
-  duration: 5,
-  artworkUrl: 2048
-};
-
-const durationPattern = /^\d{1,2}:[0-5]\d$/;
-
-const getSongFormValues = (song?: Song): SongFormValues => ({
-  title: song?.title ?? "",
-  artist: song?.artist ?? "",
-  album: song?.album ?? "",
-  genre: song?.genre ?? "",
-  duration: song?.duration ?? "",
-  artworkUrl: song?.artworkUrl ?? ""
-});
-
-const getSongPayload = (values: SongFormValues): { payload?: SongMutationPayload; errors?: string[] } => {
-  const trimmed = {
-    title: values.title.trim(),
-    artist: values.artist.trim(),
-    album: values.album.trim(),
-    genre: values.genre.trim(),
-    duration: values.duration.trim(),
-    artworkUrl: values.artworkUrl.trim()
-  };
-  const errors: string[] = [];
-
-  for (const field of ["title", "artist", "album", "genre", "duration"] as const) {
-    if (!trimmed[field]) {
-      errors.push(`${field} is required.`);
-    } else if (trimmed[field].length > songFieldLimits[field]) {
-      errors.push(`${field} must be ${songFieldLimits[field]} characters or fewer.`);
-    }
-  }
-
-  const genre = SONG_GENRES.find((allowedGenre) => allowedGenre === trimmed.genre);
-
-  if (trimmed.genre && !genre) {
-    errors.push(`genre must be one of: ${SONG_GENRES.join(", ")}.`);
-  }
-
-  if (trimmed.duration && !durationPattern.test(trimmed.duration)) {
-    errors.push("duration must use M:SS or MM:SS format.");
-  }
-
-  if (trimmed.artworkUrl.length > songFieldLimits.artworkUrl) {
-    errors.push(`artworkUrl must be ${songFieldLimits.artworkUrl} characters or fewer.`);
-  }
-
-  if (!genre || errors.length > 0) {
-    return { errors };
-  }
-
-  return {
-    payload: {
-      title: trimmed.title,
-      artist: trimmed.artist,
-      album: trimmed.album,
-      genre,
-      duration: trimmed.duration,
-      artworkUrl: trimmed.artworkUrl || null
-    }
-  };
-};
 
 const parseDuration = (duration: string) => {
   const [minutes = "0", seconds = "0"] = duration.split(":");
@@ -210,8 +130,8 @@ export const SongLibraryWorkspace = () => {
     [focusedSong, items, selectedSongId]
   );
   const statsView = useMemo(() => getStatsAdapters(stats), [stats]);
-  const formTitle = songModal?.mode === "edit" ? "Edit Song Metadata" : "Add Song to Catalog";
-  const actionLabel = songModal?.mode === "edit" ? "Update Record" : "Save Song";
+  const formTitle = getSongModalTitle(songModal);
+  const actionLabel = getSongModalActionLabel(songModal);
   const modalErrors = useMemo(
     () => (mutationError ? [...formErrors, mutationError] : formErrors),
     [formErrors, mutationError]
@@ -248,10 +168,12 @@ export const SongLibraryWorkspace = () => {
 
   useEffect(() => {
     if (mutationStatus === "succeeded") {
+      const formState = getClearedSongFormState();
+
       setSongModal(null);
       setSongToDelete(null);
-      setFormValues(emptySongForm);
-      setFormErrors([]);
+      setFormValues(formState.values);
+      setFormErrors(formState.errors);
       dispatch(clearSongMutationState());
     }
   }, [dispatch, mutationStatus]);
@@ -337,7 +259,7 @@ export const SongLibraryWorkspace = () => {
 
   const openCreateModal = () => {
     dispatch(clearSongMutationState());
-    setFormValues({ ...emptySongForm, artworkUrl: artworkPresets[Math.floor(Math.random() * artworkPresets.length)] });
+    setFormValues(getCreateSongFormValues(Math.floor(Math.random() * artworkPresets.length)));
     setFormErrors([]);
     setSongModal({ mode: "create" });
   };
@@ -359,10 +281,12 @@ export const SongLibraryWorkspace = () => {
       return;
     }
 
+    const formState = getClearedSongFormState();
+
     dispatch(clearSongMutationState());
     setSongModal(null);
-    setFormValues(emptySongForm);
-    setFormErrors([]);
+    setFormValues(formState.values);
+    setFormErrors(formState.errors);
   };
 
   const closeDeleteModal = () => {

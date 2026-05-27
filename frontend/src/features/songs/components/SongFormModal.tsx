@@ -5,15 +5,7 @@ import { SONG_GENRES } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
 import { Field, FormFeedback, Input } from "../../../ui/Form";
 import { Modal } from "../../../ui/Modal";
-
-export interface SongFormValues {
-  title: string;
-  artist: string;
-  album: string;
-  genre: string;
-  duration: string;
-  artworkUrl: string;
-}
+import type { SongFormValues } from "../songMutationForm";
 
 interface SongFormModalProps {
   actionLabel: string;
