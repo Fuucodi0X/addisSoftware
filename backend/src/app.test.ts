@@ -2,9 +2,9 @@ import request from "supertest";
 import mongoose from "mongoose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
-import { Song } from "./songs/song.js";
+import { Song } from "./songs/model.js";
 
-vi.mock("./songs/song.js", () => ({
+vi.mock("./songs/model.js", () => ({
   SONG_GENRES: ["Ethio-jazz", "Pop", "Contemporary", "Soul", "Traditional"],
   Song: {
     aggregate: vi.fn(),

@@ -1,4 +1,4 @@
-import type { SongRecord } from "./song.js";
+import type { SongRecord } from "./model.js";
 
 export interface SongResponse {
   id: string;

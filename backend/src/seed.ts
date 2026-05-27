@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { pathToFileURL } from "node:url";
 import { config } from "./config.js";
-import { Song, type SongAttrs } from "./songs/song.js";
+import { Song, type SongAttrs } from "./songs/model.js";
 
 const artwork = {
   asterEbo: "https://coverartarchive.org/release/18c95806-c70a-4e3e-8fc5-8996b7fbb733/front-250",

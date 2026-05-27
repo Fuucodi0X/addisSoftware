@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Song } from "./songs/song.js";
+import { Song } from "./songs/model.js";
 
 const LEGACY_DUPLICATE_SONG_INDEX = "title_1_artist_1_album_1";
 const IGNORABLE_DROP_INDEX_CODE_NAMES = new Set(["IndexNotFound", "NamespaceNotFound"]);

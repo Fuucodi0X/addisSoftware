@@ -2,7 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import mongoose from "mongoose";
 import type { FilterQuery } from "mongoose";
 import { toSongResponse } from "./mapper.js";
-import { SONG_GENRES, Song, type SongAttrs, type SongDocument, type SongGenre } from "./song.js";
+import { SONG_GENRES, Song, type SongAttrs, type SongDocument, type SongGenre } from "./model.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
