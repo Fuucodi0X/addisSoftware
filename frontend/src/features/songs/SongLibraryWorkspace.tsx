@@ -415,7 +415,7 @@ const AppFrame = styled.div`
   background: var(--app-panel);
   box-shadow: var(--app-shadow-panel);
 
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     height: 100vh;
     min-height: 100vh;
     border-radius: 0;
@@ -434,7 +434,7 @@ const Sidebar = styled.aside`
   background: var(--app-panel);
   flex-shrink: 0;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     width: 100%;
     height: 64px;
     flex-direction: row;
@@ -491,7 +491,7 @@ const ScrollPanel = styled.div`
   overflow-x: hidden;
   padding: 32px;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     padding: 16px;
   }
 `;
@@ -725,11 +725,12 @@ const ArtistRow = styled.div`
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: ${({ theme }) => theme.space[4]}px;
 
     > span:last-of-type {
-      grid-column: 2;
-      justify-self: start;
+      grid-column: 3;
+      justify-self: end;
     }
   }
 `;
@@ -792,7 +793,7 @@ const FloatingAdd = styled.button`
     background: var(--app-brand-hover);
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints[1]}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     right: 16px;
     bottom: 168px;
     width: 48px;
