@@ -6,12 +6,11 @@ import { getStatsAdapters, type SongStatsAdapters } from "../statsAdapters";
 
 interface StatsDashboardProps {
   error: string | null;
-  onBack: () => void;
   stats: SongLibraryStats;
   status: "idle" | "loading" | "succeeded" | "failed";
 }
 
-export const StatsDashboard = ({ error, onBack, stats, status }: StatsDashboardProps) => {
+export const StatsDashboard = ({ error, stats, status }: StatsDashboardProps) => {
   const adapters = useMemo(() => getStatsAdapters(stats), [stats]);
 
   if (status === "loading") {
@@ -37,29 +36,19 @@ export const StatsDashboard = ({ error, onBack, stats, status }: StatsDashboardP
     );
   }
 
-  return <StatsSummary adapters={adapters} onBack={onBack} stats={stats} />;
+  return <StatsSummary adapters={adapters} stats={stats} />;
 };
 
 interface StatsSummaryProps {
   adapters: SongStatsAdapters;
-  onBack: () => void;
   stats: SongLibraryStats;
 }
 
-const StatsSummary = ({ adapters, onBack, stats }: StatsSummaryProps) => {
+const StatsSummary = ({ adapters, stats }: StatsSummaryProps) => {
   const [activeSubTab, setActiveSubTab] = useState<"artists" | "albums">("artists");
 
   return (
     <StatsShell id="datadoor-container">
-      <StatsTopBar>
-        <div>
-          <h2>KPI Metrics Summary</h2>
-          <p>Catalogue-level Song, Artist, Album, and Genre distribution.</p>
-        </div>
-        <SecondaryAction type="button" onClick={onBack}>
-          Back to Catalog
-        </SecondaryAction>
-      </StatsTopBar>
       <StatsGrid>
         <StatsOverview id="datadoor-overview-pane">
           <MetricGrid>
@@ -238,65 +227,12 @@ const segmentColors = [
   "var(--app-chart-segment-6)"
 ];
 
-const BaseAction = styled.button`
-  min-height: 36px;
-  border: 0;
-  border-radius: ${({ theme }) => theme.radii.full}px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 8px 16px;
-  font-size: 0.72rem;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: transform 150ms ease, background 150ms ease, color 150ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-`;
-
-const SecondaryAction = styled(BaseAction)`
-  background: var(--app-inverse);
-  color: var(--app-panel-subtle);
-`;
-
 const StatsShell = styled.section`
   border: 1px solid var(--app-border);
   border-radius: ${({ theme }) => theme.radii.xl}px;
   background: var(--app-panel);
   padding: 28px;
   box-shadow: var(--app-shadow-soft);
-`;
-
-const StatsTopBar = styled.header`
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
-
-  h2 {
-    margin: 0;
-    color: var(--app-analytics-accent);
-    font-size: 0.78rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  p {
-    margin: 5px 0 0;
-    color: var(--app-text-secondary);
-    font-size: 0.84rem;
-    font-weight: 650;
-  }
 `;
 
 const StatsGrid = styled.div`

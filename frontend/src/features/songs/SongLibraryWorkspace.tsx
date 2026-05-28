@@ -283,7 +283,7 @@ export const SongLibraryWorkspace = () => {
                   </div>
                 </ErrorBanner>
               ) : activeTab === "stats" ? (
-                <StatsDashboard error={statsError} stats={stats} status={statsStatus} onBack={goHome} />
+                <StatsDashboard error={statsError} stats={stats} status={statsStatus} />
               ) : (
                 <HomeView>
                   <TopGrid>
