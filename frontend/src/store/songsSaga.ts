@@ -19,12 +19,11 @@ import {
 import type { RootState } from "./store";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
-const SONGS_PER_PAGE = 8;
 
 const fetchSongs = async (query: SongQueryParams): Promise<SongListEnvelope> => {
   const searchParams = new URLSearchParams({
     page: String(query.page),
-    limit: String(SONGS_PER_PAGE)
+    limit: String(query.limit)
   });
 
   if (query.q.trim()) {

@@ -50,6 +50,7 @@ export interface SongQueryParams {
   q: string;
   genre: string;
   page: number;
+  limit: number;
 }
 
 export interface SongMutationPayload {
@@ -84,7 +85,8 @@ const initialState: SongsState = {
   query: {
     q: "",
     genre: "",
-    page: 1
+    page: 1,
+    limit: 8
   },
   page: 1,
   limit: 8,
@@ -129,6 +131,7 @@ const songsSlice = createSlice({
       state.totalItems = action.payload.totalItems;
       state.totalPages = action.payload.totalPages;
       state.query.page = action.payload.page;
+      state.query.limit = action.payload.limit;
       state.status = "succeeded";
     },
     fetchSongsFailed(state, action: PayloadAction<string>) {

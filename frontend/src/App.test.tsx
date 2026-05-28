@@ -43,7 +43,8 @@ const appState = (overrides?: Partial<RootState["songs"]>): RootState["songs"] =
   query: {
     q: "",
     genre: "",
-    page: 1
+    page: 1,
+    limit: 8
   },
   page: 1,
   limit: 8,
@@ -324,7 +325,8 @@ describe("App", () => {
           query: {
             q: "missing",
             genre: "",
-            page: 1
+            page: 1,
+            limit: 8
           },
           totalItems: 0,
           totalPages: 0
