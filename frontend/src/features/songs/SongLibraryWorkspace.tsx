@@ -223,6 +223,10 @@ export const SongLibraryWorkspace = () => {
     dispatch(fetchSongsRequested({ genre: genre === "All" ? "" : genre, page: 1 }));
   };
 
+  const handleLimitChange = (nextLimit: number) => {
+    dispatch(fetchSongsRequested({ limit: nextLimit, page: 1 }));
+  };
+
   return (
     <>
       <Shell>
@@ -356,6 +360,7 @@ export const SongLibraryWorkspace = () => {
                     onDeleteSong={openDeleteModal}
                     onEditSong={openEditModal}
                     onGenreChange={handleGenreChange}
+                    onLimitChange={handleLimitChange}
                     onPageChange={(nextPage) => dispatch(fetchSongsRequested({ page: nextPage }))}
                     onSearchChange={handleSearchChange}
                     onSelectSong={focusedSelection.focusSong}

@@ -399,6 +399,35 @@ describe("App", () => {
     expect(store.getState().songs.query).toMatchObject({ genre: "Soul", page: 2 });
   });
 
+  it("changes the configurable Song page limit from the catalog footer", async () => {
+    const { store } = renderApp({
+      songs: appState({
+        page: 2,
+        totalItems: 30,
+        totalPages: 4
+      })
+    });
+
+    await settleMountEffects();
+    act(() => {
+      store.dispatch({
+        type: "songs/fetchSongsSucceeded",
+        payload: {
+          items: store.getState().songs.items,
+          genres: ["Ethio-jazz", "Soul"],
+          page: 2,
+          limit: 8,
+          totalItems: 30,
+          totalPages: 4
+        }
+      });
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Songs per page/ }));
+    fireEvent.click(screen.getByRole("option", { name: "15" }));
+
+    expect(store.getState().songs.query).toMatchObject({ limit: 15, page: 1 });
+  });
+
   it("renders loading, empty, and error catalog states", () => {
     const { store } = renderApp({
       songs: appState({

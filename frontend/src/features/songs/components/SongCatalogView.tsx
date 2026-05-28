@@ -1,10 +1,11 @@
 import styled from "@emotion/styled";
-import { Edit, Filter, Search, Trash2, X } from "lucide-react";
-import type { WheelEvent } from "react";
+import { ChevronDown, Edit, Filter, Search, Trash2, X } from "lucide-react";
+import { useState, type FocusEvent, type WheelEvent } from "react";
 import type { Song } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
 
 type SongLoadStatus = "idle" | "loading" | "succeeded" | "failed";
+const limitOptions = [5, 8, 15, 25, 50];
 
 interface SongCatalogViewProps {
   activeSongId: string | null;
@@ -18,6 +19,7 @@ interface SongCatalogViewProps {
   onDeleteSong: (song: Song) => void;
   onEditSong: (song: Song) => void;
   onGenreChange: (genre: string) => void;
+  onLimitChange: (limit: number) => void;
   onPageChange: (page: number) => void;
   onSearchChange: (value: string) => void;
   onSelectSong: (song: Song) => void;
@@ -41,6 +43,7 @@ export const SongCatalogView = ({
   onDeleteSong,
   onEditSong,
   onGenreChange,
+  onLimitChange,
   onPageChange,
   onSearchChange,
   onSelectSong,
@@ -51,9 +54,26 @@ export const SongCatalogView = ({
   totalItems,
   totalPages
 }: SongCatalogViewProps) => {
+  const [isLimitMenuOpen, setIsLimitMenuOpen] = useState(false);
   const endItem = Math.min(page * limit, totalItems);
   const emptyRows = Math.max(0, 5 - items.length);
   const pageNumbers = Array.from({ length: Math.max(totalPages, 1) }, (_, index) => index + 1);
+  const selectedLimit = limitOptions.includes(limit) ? limit : limitOptions[1];
+
+  const closeLimitMenuOnBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setIsLimitMenuOpen(false);
+    }
+  };
+
+  const chooseLimit = (nextLimit: number) => {
+    setIsLimitMenuOpen(false);
+
+    if (nextLimit !== limit) {
+      onLimitChange(nextLimit);
+    }
+  };
+
   const handleGenreWheel = (event: WheelEvent<HTMLDivElement>) => {
     const rail = event.currentTarget;
 
@@ -233,34 +253,65 @@ export const SongCatalogView = ({
       </TableShell>
 
       <Pagination>
-        <span>
-          Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of <strong>{totalItems}</strong> Songs
-        </span>
-        <PageControls>
-          <Button type="button" size="sm" variant="outline" disabled={page <= 1 || status === "loading"} onClick={() => onPageChange(page - 1)}>
-            Prev
-          </Button>
-          {pageNumbers.map((pageNumber) => (
-            <PageNumber
-              key={pageNumber}
+        <PaginationNavigation>
+          <PaginationSummary>
+            Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of <strong>{totalItems}</strong> Songs
+          </PaginationSummary>
+          <PageControls>
+            <Button type="button" size="sm" variant="outline" disabled={page <= 1 || status === "loading"} onClick={() => onPageChange(page - 1)}>
+              Prev
+            </Button>
+            {pageNumbers.map((pageNumber) => (
+              <PageNumber
+                key={pageNumber}
+                type="button"
+                size="sm"
+                variant={pageNumber === page ? "solid" : "outline"}
+                onClick={() => onPageChange(pageNumber)}
+              >
+                {pageNumber}
+              </PageNumber>
+            ))}
+            <Button
               type="button"
               size="sm"
-              variant={pageNumber === page ? "solid" : "outline"}
-              onClick={() => onPageChange(pageNumber)}
+              variant="outline"
+              disabled={page >= totalPages || status === "loading"}
+              onClick={() => onPageChange(page + 1)}
             >
-              {pageNumber}
-            </PageNumber>
-          ))}
-          <Button
+              Next
+            </Button>
+          </PageControls>
+        </PaginationNavigation>
+        <LimitControl onBlur={closeLimitMenuOnBlur}>
+          <LimitMenuButton
+            aria-label={`Songs per page, ${selectedLimit}`}
+            aria-expanded={isLimitMenuOpen}
+            aria-haspopup="listbox"
+            disabled={status === "loading"}
             type="button"
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages || status === "loading"}
-            onClick={() => onPageChange(page + 1)}
+            onClick={() => setIsLimitMenuOpen((isOpen) => !isOpen)}
           >
-            Next
-          </Button>
-        </PageControls>
+            <strong>{selectedLimit}</strong>
+            <ChevronDown size={14} />
+          </LimitMenuButton>
+          {isLimitMenuOpen ? (
+            <LimitMenu role="listbox" aria-label="Songs per page">
+              {limitOptions.map((option) => (
+                <LimitOption
+                  key={option}
+                  type="button"
+                  role="option"
+                  aria-selected={option === selectedLimit}
+                  data-active={option === selectedLimit}
+                  onClick={() => chooseLimit(option)}
+                >
+                  {option}
+                </LimitOption>
+              ))}
+            </LimitMenu>
+          ) : null}
+        </LimitControl>
       </Pagination>
     </CatalogCard>
   );
@@ -811,27 +862,136 @@ const EmptyRow = styled.tr(({ theme }) => ({
 }));
 
 const Pagination = styled.footer(({ theme }) => ({
-  alignItems: "center",
+  alignItems: "flex-end",
   background: theme.colors.surface.panelSubtle,
   borderTop: `1px solid ${theme.colors.border.default}`,
   color: theme.colors.text.muted,
   display: "flex",
+  flexWrap: "wrap",
   fontSize: theme.fontSizes.sm,
   fontWeight: theme.fontWeights.medium,
   gap: theme.space[6],
   justifyContent: "space-between",
+  rowGap: theme.space[4],
   padding: `${theme.space[6]}px ${theme.space[7]}px`,
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
-    alignItems: "stretch",
-    flexDirection: "column",
     padding: theme.space[5]
+  }
+}));
+
+const PaginationSummary = styled.span({
+  whiteSpace: "nowrap"
+});
+
+const PaginationNavigation = styled.div(({ theme }) => ({
+  alignItems: "flex-start",
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.space[4],
+  justifyContent: "flex-start",
+  minWidth: 0,
+  rowGap: theme.space[3]
+}));
+
+const LimitControl = styled.div(({ theme }) => ({
+  alignItems: "center",
+  color: theme.colors.text.muted,
+  display: "inline-flex",
+  gap: theme.space[3],
+  marginLeft: "auto",
+  minWidth: 0,
+  position: "relative"
+}));
+
+const LimitMenuButton = styled.button(({ theme }) => ({
+  alignItems: "center",
+  background: theme.colors.surface.panel,
+  border: `1px solid ${theme.colors.border.default}`,
+  borderRadius: theme.radii.lg,
+  color: theme.colors.text.primary,
+  display: "inline-flex",
+  gap: theme.space[2],
+  justifyContent: "space-between",
+  minHeight: theme.space[9],
+  minWidth: theme.space[10] + theme.space[3],
+  padding: `0 ${theme.space[3]}px 0 ${theme.space[4]}px`,
+  transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease",
+
+  strong: {
+    fontFamily: theme.fonts.mono,
+    fontSize: theme.fontSizes.sm,
+    fontWeight: theme.fontWeights.black
+  },
+
+  svg: {
+    color: theme.colors.text.muted,
+    transition: "transform 150ms ease"
+  },
+
+  "&[aria-expanded='true']": {
+    borderColor: theme.colors.action.accent,
+    boxShadow: theme.colors.focus.shadow
+  },
+
+  "&[aria-expanded='true'] svg": {
+    transform: "rotate(180deg)"
+  },
+
+  "&:hover:not(:disabled)": {
+    borderColor: theme.colors.border.strong,
+    transform: "translateY(-1px)"
+  },
+
+  "&:disabled": {
+    color: theme.colors.text.muted,
+    cursor: "not-allowed",
+    opacity: 0.65
+  }
+}));
+
+const LimitMenu = styled.div(({ theme }) => ({
+  background: theme.colors.surface.panel,
+  border: `1px solid ${theme.colors.border.default}`,
+  borderRadius: theme.radii.lg,
+  bottom: `calc(100% + ${theme.space[2]}px)`,
+  boxShadow: theme.effects.shadows.raised,
+  display: "grid",
+  gap: theme.space[1],
+  minWidth: theme.space[11],
+  padding: theme.space[2],
+  position: "absolute",
+  right: 0,
+  zIndex: 10
+}));
+
+const LimitOption = styled.button(({ theme }) => ({
+  background: "transparent",
+  border: 0,
+  borderRadius: theme.radii.md,
+  color: theme.colors.text.secondary,
+  fontFamily: theme.fonts.mono,
+  fontSize: theme.fontSizes.sm,
+  fontWeight: theme.fontWeights.black,
+  minHeight: theme.space[8],
+  padding: `0 ${theme.space[4]}px`,
+  textAlign: "left",
+
+  "&:hover": {
+    background: theme.colors.surface.panelSubtle,
+    color: theme.colors.text.primary
+  },
+
+  "&[data-active='true']": {
+    background: theme.colors.action.primary,
+    color: theme.colors.text.inverse
   }
 }));
 
 const PageControls = styled.div(({ theme }) => ({
   display: "flex",
   gap: theme.space[3],
+  marginInline: theme.space[4],
 
   [`@media (max-width: ${theme.breakpoints[0]})`]: {
     flexWrap: "wrap"
