@@ -1,5 +1,5 @@
-import styled from "@emotion/styled";
 import type { ReactNode } from "react";
+import { Stack } from "../../../design/primitives";
 import type { Song, SongLibraryStats } from "../../../store/songsSlice";
 import { SongHomeSummary } from "./SongHomeSummary";
 
@@ -18,7 +18,7 @@ export const SongWorkspaceHome = ({
   onSelectFeaturedSong,
   onShowStats
 }: SongWorkspaceHomeProps) => (
-  <HomeView>
+  <Stack gap={8}>
     <SongHomeSummary
       activeSong={activeSong}
       artists={artists}
@@ -26,10 +26,5 @@ export const SongWorkspaceHome = ({
       onShowStats={onShowStats}
     />
     {children}
-  </HomeView>
+  </Stack>
 );
-
-const HomeView = styled.div`
-  display: grid;
-  gap: 24px;
-`;

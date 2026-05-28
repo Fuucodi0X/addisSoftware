@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import type { ReactNode, Ref } from "react";
+import { Box, Flex } from "../../../design/primitives";
 
 interface SongLibraryShellProps {
   children: ReactNode;
@@ -24,9 +25,8 @@ export const SongLibraryShell = ({ children, floatingAction, footer, scrollRef, 
   </Shell>
 );
 
-const Shell = styled.main`
+const Shell = styled(Flex)`
   min-height: 100vh;
-  display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
@@ -37,11 +37,10 @@ const Shell = styled.main`
   }
 `;
 
-const AppFrame = styled.div`
+const AppFrame = styled(Flex)`
   width: min(1280px, 100%);
   height: calc(100vh - 48px);
   min-height: 760px;
-  display: flex;
   overflow: hidden;
   border: 1px solid var(--app-border);
   border-radius: ${({ theme }) => theme.radii.xl}px;
@@ -56,17 +55,16 @@ const AppFrame = styled.div`
   }
 `;
 
-const MainPanel = styled.section`
+const MainPanel = styled(Flex)`
   min-width: 0;
   flex: 1;
-  display: flex;
   flex-direction: column;
   position: relative;
   background: var(--app-surface);
   overflow: hidden;
 `;
 
-const ScrollPanel = styled.div`
+const ScrollPanel = styled(Box)`
   flex: 1;
   min-width: 0;
   overflow-y: auto;
