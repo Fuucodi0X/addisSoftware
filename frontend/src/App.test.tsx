@@ -105,13 +105,20 @@ describe("App", () => {
     renderApp({ songs: appState() });
 
     const table = screen.getByRole("table", { name: "Song Catalog" });
+    const firstSongRow = within(table).getAllByRole("row")[1];
+    const firstSongCells = within(firstSongRow).getAllByRole("cell");
 
+    expect(within(table).getByRole("columnheader", { name: "Album" })).toBeTruthy();
     expect(within(table).getByText("Tizita")).toBeTruthy();
     expect(within(table).getByText("Mulatu Astatke")).toBeTruthy();
     expect(within(table).getByText("Ethiopiques")).toBeTruthy();
     expect(within(table).getByText("Ethio-jazz")).toBeTruthy();
     expect(within(table).getByText("4:08")).toBeTruthy();
     expect(within(table).getByText("Yene Habesha")).toBeTruthy();
+    expect(within(firstSongCells[0]).getByText("Mulatu Astatke")).toBeTruthy();
+    expect(within(firstSongCells[0]).queryByText("Ethiopiques", { selector: "span" })).toBeNull();
+    expect(firstSongCells[0].querySelector("small")?.textContent).toBe("Mulatu Astatke•Ethio-jazz•4:08");
+    expect(firstSongCells[1].textContent).toBe("Ethiopiques");
   });
 
   it("renders the Song Library shell", () => {

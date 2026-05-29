@@ -145,7 +145,7 @@ export const SongCatalogView = ({
         <Table aria-label="Song Catalog">
           <CatalogColumnGroup>
             <col className="title-column" />
-            <col className="artist-column" />
+            <col className="album-column" />
             <col className="genre-column" />
             <col className="duration-column" />
             <col className="actions-column" />
@@ -153,7 +153,7 @@ export const SongCatalogView = ({
           <thead>
             <tr>
               <th># Title</th>
-              <th>Artist Name</th>
+              <th>Album</th>
               <th>Genre Category</th>
               <th>Duration</th>
               <th>Actions</th>
@@ -194,9 +194,9 @@ export const SongCatalogView = ({
                         />
                         <TitleText>
                           <strong>{song.title}</strong>
-                          <span>{song.album}</span>
+                          <span>{song.artist}</span>
                           <MobileMetadata>
-                            {song.album}
+                            {song.artist}
                             <MetadataDot aria-hidden="true">•</MetadataDot>
                             {song.genre}
                             <MetadataDot aria-hidden="true">•</MetadataDot>
@@ -205,7 +205,7 @@ export const SongCatalogView = ({
                         </TitleText>
                       </TitleCell>
                     </td>
-                    <td>{song.artist}</td>
+                    <td>{song.album}</td>
                     <td>
                       <GenreLabel>{song.genre}</GenreLabel>
                     </td>
@@ -617,7 +617,7 @@ const CatalogColumnGroup = styled.colgroup(({ theme }) => ({
   ".title-column": {
     width: "36%"
   },
-  ".artist-column": {
+  ".album-column": {
     width: "16%"
   },
   ".genre-column": {
@@ -634,7 +634,7 @@ const CatalogColumnGroup = styled.colgroup(({ theme }) => ({
     ".title-column": {
       width: "54%"
     },
-    ".artist-column": {
+    ".album-column": {
       width: "24%"
     },
     ".genre-column, .duration-column": {
