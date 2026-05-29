@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { ChevronDown, Edit, Filter, Search, Trash2, X } from "lucide-react";
 import { useState, type FocusEvent, type WheelEvent } from "react";
+import { Box, Flex, Grid, Heading, Inline, Stack, Text } from "../../../design/primitives";
 import type { Song } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
 
@@ -90,16 +91,26 @@ export const SongCatalogView = ({
   };
 
   return (
-    <CatalogCard>
-      <CatalogHeader>
-        <div>
-          <h2>Song Catalog</h2>
-          <span>
+    <CatalogCard
+      as="section"
+      bg="var(--app-panel)"
+      border="1px solid var(--app-border)"
+      borderRadius="xl"
+      boxShadow="var(--app-shadow-soft)"
+      minWidth={0}
+      overflow="hidden"
+    >
+      <CatalogHeader alignItems="center" as="header" gap={7} justifyContent="space-between" p={7}>
+        <Stack>
+          <CatalogTitle as="h2" variant="card">
+            Song Catalog
+          </CatalogTitle>
+          <CatalogTelemetry as="span" variant="caption" tone="muted">
             Telemetry: {startItem}-{endItem} of {totalItems} indexed Songs
-          </span>
-        </div>
-        <Controls>
-          <SearchShell>
+          </CatalogTelemetry>
+        </Stack>
+        <Controls alignItems="center" gap={6} minWidth={0}>
+          <SearchShell as="label" gap={4}>
             <Search size={15} />
             <input
               id="catalog-search-input"
@@ -120,11 +131,11 @@ export const SongCatalogView = ({
               </ClearSearchButton>
             ) : null}
           </SearchShell>
-          <Divider />
-          <GenreControls>
+          <Divider bg="var(--app-border)" height={7} width="1px" />
+          <GenreControls flex="1 1 0%" gap={4} minWidth={0}>
             <Filter size={15} />
             <strong>Genres:</strong>
-            <GenreScroller onWheel={handleGenreWheel}>
+            <GenreScroller flex="1 1 0%" gap={3} maxWidth="100%" minWidth={0} width="100%" onWheel={handleGenreWheel}>
               {["All", ...genres].map((genreName) => (
                 <GenreButton
                   id={`filter-genre-pill-${genreName}`}
@@ -141,7 +152,7 @@ export const SongCatalogView = ({
         </Controls>
       </CatalogHeader>
 
-      <TableShell>
+      <TableShell minWidth={0} overflow="hidden">
         <Table aria-label="Song Catalog">
           <CatalogColumnGroup>
             <col className="title-column" />
@@ -163,7 +174,7 @@ export const SongCatalogView = ({
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5}>
-                  <EmptyTableText>
+                  <EmptyTableText as="div" tone="muted" variant="supporting">
                     {isFiltered ? "No Songs match your query in this scope." : "No Songs have been added yet."}
                   </EmptyTableText>
                 </td>
@@ -252,12 +263,12 @@ export const SongCatalogView = ({
         </Table>
       </TableShell>
 
-      <Pagination>
-        <PaginationNavigation>
-          <PaginationSummary>
+      <Pagination alignItems="flex-end" as="footer" flexWrap="wrap" gap={6} justifyContent="space-between">
+        <PaginationNavigation alignItems="flex-start" gap={4} justifyContent="flex-start" minWidth={0}>
+          <PaginationSummary as="span" variant="supporting" tone="muted">
             Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of <strong>{totalItems}</strong> Songs
           </PaginationSummary>
-          <PageControls>
+          <PageControls gap={3}>
             <Button type="button" size="sm" variant="outline" disabled={page <= 1 || status === "loading"} onClick={() => onPageChange(page - 1)}>
               Prev
             </Button>
@@ -283,7 +294,7 @@ export const SongCatalogView = ({
             </Button>
           </PageControls>
         </PaginationNavigation>
-        <LimitControl onBlur={closeLimitMenuOnBlur}>
+        <LimitControl gap={3} minWidth={0} onBlur={closeLimitMenuOnBlur}>
           <LimitMenuButton
             aria-label={`Songs per page, ${selectedLimit}`}
             aria-expanded={isLimitMenuOpen}
@@ -317,43 +328,14 @@ export const SongCatalogView = ({
   );
 };
 
-const CatalogCard = styled.section(({ theme }) => ({
-  background: theme.colors.surface.panel,
-  border: `1px solid ${theme.colors.border.default}`,
-  borderRadius: theme.radii.xl,
-  boxShadow: theme.effects.shadows.soft,
-  minWidth: 0,
-  overflow: "hidden",
-
+const CatalogCard = styled(Box)(({ theme }) => ({
   [`@media (max-width: ${theme.breakpoints[0]})`]: {
     borderRadius: theme.radii.lg
   }
 }));
 
-const CatalogHeader = styled.header(({ theme }) => ({
-  alignItems: "center",
+const CatalogHeader = styled(Flex)(({ theme }) => ({
   borderBottom: `1px solid ${theme.colors.border.subtle}`,
-  display: "flex",
-  gap: theme.space[7],
-  justifyContent: "space-between",
-  padding: theme.space[7],
-
-  h2: {
-    color: theme.colors.surface.inverse,
-    fontSize: theme.fontSizes.md,
-    fontWeight: theme.fontWeights.black,
-    letterSpacing: "0.05em",
-    margin: 0,
-    textTransform: "uppercase"
-  },
-
-  span: {
-    color: theme.colors.text.muted,
-    fontSize: theme.fontSizes.xs,
-    fontWeight: theme.fontWeights.bold,
-    letterSpacing: "0.04em",
-    textTransform: "uppercase"
-  },
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "stretch",
@@ -367,11 +349,20 @@ const CatalogHeader = styled.header(({ theme }) => ({
   }
 }));
 
-const Controls = styled.div(({ theme }) => ({
-  alignItems: "center",
-  display: "flex",
-  gap: theme.space[6],
-  minWidth: 0,
+const CatalogTitle = styled(Heading)`
+  color: var(--app-inverse);
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
+
+const CatalogTelemetry = styled(Text)`
+  font-weight: ${({ theme }) => theme.fontWeights.bold};
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+const Controls = styled(Flex)(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "stretch",
@@ -380,14 +371,12 @@ const Controls = styled.div(({ theme }) => ({
   }
 }));
 
-const SearchShell = styled.label(({ theme }) => ({
-  alignItems: "center",
+const SearchShell = styled(Inline)(({ theme }) => ({
   background: theme.colors.surface.panelSubtle,
   border: `1px solid ${theme.colors.border.default}`,
   borderRadius: theme.radii.full,
   color: theme.colors.text.muted,
-  display: "flex",
-  gap: theme.space[4],
+  flexWrap: "nowrap",
   height: theme.space[10],
   padding: `0 ${theme.space[6]}px`,
   width: theme.space[12] * 3 + theme.space[9],
@@ -431,23 +420,16 @@ const ClearSearchButton = styled.button(({ theme }) => ({
   }
 }));
 
-const Divider = styled.div(({ theme }) => ({
-  background: theme.colors.border.default,
-  height: theme.space[7],
-  width: "1px",
+const Divider = styled(Box)(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     display: "none"
   }
 }));
 
-const GenreControls = styled.div(({ theme }) => ({
-  alignItems: "center",
+const GenreControls = styled(Inline)(({ theme }) => ({
   color: theme.colors.text.muted,
-  display: "flex",
-  flex: "1 1 0%",
-  gap: theme.space[4],
-  minWidth: 0,
+  flexWrap: "nowrap",
   overflow: "hidden",
 
   strong: {
@@ -461,22 +443,18 @@ const GenreControls = styled.div(({ theme }) => ({
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     alignItems: "flex-start",
     flexWrap: "wrap",
-    gap: theme.space[3]
+    gap: theme.space[3],
+    overflow: "visible"
   }
 }));
 
-const GenreScroller = styled.div(({ theme }) => ({
-  display: "flex",
-  flex: "1 1 0%",
-  gap: theme.space[3],
-  maxWidth: "100%",
-  minWidth: 0,
+const GenreScroller = styled(Flex)(({ theme }) => ({
+  flexWrap: "nowrap",
   overflowX: "auto",
   overflowY: "hidden",
   scrollbarWidth: "none",
   touchAction: "pan-x",
   WebkitOverflowScrolling: "touch",
-  width: "100%",
 
   "&::-webkit-scrollbar": {
     display: "none"
@@ -484,6 +462,9 @@ const GenreScroller = styled.div(({ theme }) => ({
 
   [`@media (max-width: ${theme.breakpoints[2]})`]: {
     flex: "1 1 100%",
+    flexWrap: "wrap",
+    overflow: "visible",
+    touchAction: "auto",
     width: "100%"
   }
 }));
@@ -501,10 +482,7 @@ const GenreButton = styled.button<{ $active?: boolean }>(({ theme, $active }) =>
   whiteSpace: "nowrap"
 }));
 
-const TableShell = styled.div({
-  minWidth: 0,
-  overflow: "hidden"
-});
+const TableShell = Box;
 
 const Table = styled.table(({ theme }) => ({
   borderCollapse: "collapse",
@@ -846,8 +824,7 @@ const ActionText = styled.span(({ theme }) => ({
   }
 }));
 
-const EmptyTableText = styled.div(({ theme }) => ({
-  color: theme.colors.text.muted,
+const EmptyTableText = styled(Text)(({ theme }) => ({
   fontWeight: theme.fontWeights.medium,
   padding: theme.space[8],
   textAlign: "center"
@@ -861,17 +838,12 @@ const EmptyRow = styled.tr(({ theme }) => ({
   }
 }));
 
-const Pagination = styled.footer(({ theme }) => ({
-  alignItems: "flex-end",
+const Pagination = styled(Flex)(({ theme }) => ({
   background: theme.colors.surface.panelSubtle,
   borderTop: `1px solid ${theme.colors.border.default}`,
   color: theme.colors.text.muted,
-  display: "flex",
-  flexWrap: "wrap",
   fontSize: theme.fontSizes.sm,
   fontWeight: theme.fontWeights.medium,
-  gap: theme.space[6],
-  justifyContent: "space-between",
   rowGap: theme.space[4],
   padding: `${theme.space[6]}px ${theme.space[7]}px`,
 
@@ -880,27 +852,17 @@ const Pagination = styled.footer(({ theme }) => ({
   }
 }));
 
-const PaginationSummary = styled.span({
+const PaginationSummary = styled(Text)({
   whiteSpace: "nowrap"
 });
 
-const PaginationNavigation = styled.div(({ theme }) => ({
-  alignItems: "flex-start",
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.space[4],
-  justifyContent: "flex-start",
-  minWidth: 0,
+const PaginationNavigation = styled(Stack)(({ theme }) => ({
   rowGap: theme.space[3]
 }));
 
-const LimitControl = styled.div(({ theme }) => ({
-  alignItems: "center",
+const LimitControl = styled(Inline)(({ theme }) => ({
   color: theme.colors.text.muted,
-  display: "inline-flex",
-  gap: theme.space[3],
   marginLeft: "auto",
-  minWidth: 0,
   position: "relative"
 }));
 
@@ -950,13 +912,12 @@ const LimitMenuButton = styled.button(({ theme }) => ({
   }
 }));
 
-const LimitMenu = styled.div(({ theme }) => ({
+const LimitMenu = styled(Grid)(({ theme }) => ({
   background: theme.colors.surface.panel,
   border: `1px solid ${theme.colors.border.default}`,
   borderRadius: theme.radii.lg,
   bottom: `calc(100% + ${theme.space[2]}px)`,
   boxShadow: theme.effects.shadows.raised,
-  display: "grid",
   gap: theme.space[1],
   minWidth: theme.space[11],
   padding: theme.space[2],
@@ -988,9 +949,7 @@ const LimitOption = styled.button(({ theme }) => ({
   }
 }));
 
-const PageControls = styled.div(({ theme }) => ({
-  display: "flex",
-  gap: theme.space[3],
+const PageControls = styled(Inline)(({ theme }) => ({
   marginInline: theme.space[4],
 
   [`@media (max-width: ${theme.breakpoints[0]})`]: {
