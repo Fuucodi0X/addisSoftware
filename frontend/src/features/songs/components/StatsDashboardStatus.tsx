@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { AlertCircle } from "lucide-react";
+import { Flex, Grid, Text } from "../../../design/primitives";
 import { StatsDashboardShell } from "./StatsDashboardShell";
 
 interface StatsDashboardErrorProps {
@@ -10,7 +11,9 @@ export const StatsDashboardLoading = () => (
   <StatsDashboardShell>
     <LoadingBlock>
       <Spinner />
-      <p>Calculating catalog telemetry...</p>
+      <Text variant="supporting" tone="secondary">
+        Calculating catalog telemetry...
+      </Text>
     </LoadingBlock>
   </StatsDashboardShell>
 );
@@ -25,19 +28,14 @@ export const StatsDashboardError = ({ error }: StatsDashboardErrorProps) => (
   </ErrorBanner>
 );
 
-const LoadingBlock = styled.div`
+const LoadingBlock = styled(Grid)`
   min-height: 260px;
-  display: grid;
   place-items: center;
   align-content: center;
   gap: 12px;
   color: var(--app-text-secondary);
   font-size: 0.84rem;
   font-weight: 800;
-
-  p {
-    margin: 0;
-  }
 `;
 
 const Spinner = styled.div`
@@ -55,8 +53,7 @@ const Spinner = styled.div`
   }
 `;
 
-const ErrorBanner = styled.div`
-  display: flex;
+const ErrorBanner = styled(Flex)`
   align-items: flex-start;
   gap: 12px;
   border: 1px solid var(--app-brand-border);

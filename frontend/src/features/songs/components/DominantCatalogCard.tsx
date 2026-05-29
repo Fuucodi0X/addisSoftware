@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Activity } from "lucide-react";
+import { Box, Heading, Text } from "../../../design/primitives";
 import type { SongStatsAdapters } from "../statsAdapters";
 
 interface DominantCatalogCardProps {
@@ -8,9 +9,13 @@ interface DominantCatalogCardProps {
 
 export const DominantCatalogCard = ({ adapters }: DominantCatalogCardProps) => (
   <DominantCard>
-    <span>Dominant Sector</span>
+    <DominantLabel as="span" variant="label">
+      Dominant Sector
+    </DominantLabel>
     <Activity size={16} />
-    <h3>Main Catalog Genre</h3>
+    <DominantHeading as="h3" variant="card" tone="muted">
+      Main Catalog Genre
+    </DominantHeading>
     <strong>
       {adapters.topGenre?.genre ?? "N/A"}{" "}
       <em>
@@ -19,7 +24,9 @@ export const DominantCatalogCard = ({ adapters }: DominantCatalogCardProps) => (
     </strong>
     {adapters.topArtist ? (
       <TopArtist>
-        <span>Most Represented Artist</span>
+        <DominantLabel as="span" variant="label">
+          Most Represented Artist
+        </DominantLabel>
         <strong>
           {adapters.topArtist.artist} <em>({adapters.topArtist.songs} indexed Songs)</em>
         </strong>
@@ -28,33 +35,18 @@ export const DominantCatalogCard = ({ adapters }: DominantCatalogCardProps) => (
   </DominantCard>
 );
 
-const DominantCard = styled.div`
+const DominantCard = styled(Box)`
   position: relative;
   border-radius: ${({ theme }) => theme.radii.lg}px;
   background: var(--app-inverse);
   color: var(--app-inverse-text);
   padding: 20px;
 
-  > span {
-    color: var(--app-analytics-highlight);
-    font-size: 0.62rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
   > svg {
     position: absolute;
     top: 20px;
     right: 20px;
     color: var(--app-analytics-accent);
-  }
-
-  h3 {
-    margin: 14px 0 3px;
-    color: var(--app-muted);
-    font-size: 0.72rem;
-    text-transform: uppercase;
   }
 
   strong {
@@ -70,7 +62,19 @@ const DominantCard = styled.div`
   }
 `;
 
-const TopArtist = styled.div`
+const DominantLabel = styled(Text)`
+  color: var(--app-analytics-highlight);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+`;
+
+const DominantHeading = styled(Heading)`
+  margin: 14px 0 3px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+`;
+
+const TopArtist = styled(Box)`
   margin-top: 14px;
   border-top: 1px solid var(--app-border-strong);
   padding-top: 12px;

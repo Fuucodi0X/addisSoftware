@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import type { ReactNode } from "react";
+import { Box, Grid } from "../../../design/primitives";
 
 interface StatsDashboardShellProps {
   children: ReactNode;
@@ -7,12 +8,14 @@ interface StatsDashboardShellProps {
 }
 
 export const StatsDashboardShell = ({ children, id }: StatsDashboardShellProps) => (
-  <StatsShell id={id}>{children}</StatsShell>
+  <StatsShell as="section" id={id}>
+    {children}
+  </StatsShell>
 );
 
 export const StatsDashboardGrid = ({ children }: { children: ReactNode }) => <StatsGrid>{children}</StatsGrid>;
 
-const StatsShell = styled.section`
+const StatsShell = styled(Box)`
   border: 1px solid var(--app-border);
   border-radius: ${({ theme }) => theme.radii.xl}px;
   background: var(--app-panel);
@@ -20,8 +23,7 @@ const StatsShell = styled.section`
   box-shadow: var(--app-shadow-soft);
 `;
 
-const StatsGrid = styled.div`
-  display: grid;
+const StatsGrid = styled(Grid)`
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   align-items: start;
   gap: 34px;

@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { useState } from "react";
+import { Grid } from "../../../design/primitives";
 import type { SongLibraryStats } from "../../../store/songsSlice";
 import type { SongStatsAdapters } from "../statsAdapters";
 import { DominantCatalogCard } from "./DominantCatalogCard";
@@ -14,7 +15,7 @@ export const StatsDetailsPanel = ({ adapters, stats }: StatsDetailsPanelProps) =
   const [activeSubTab, setActiveSubTab] = useState<"artists" | "albums">("artists");
 
   return (
-    <StatsDetails id="datadoor-analytics-pane">
+    <StatsDetails as="section" id="datadoor-analytics-pane">
       <DominantCatalogCard adapters={adapters} />
       <StatsDirectory
         activeSubTab={activeSubTab}
@@ -26,8 +27,7 @@ export const StatsDetailsPanel = ({ adapters, stats }: StatsDetailsPanelProps) =
   );
 };
 
-const StatsDetails = styled.section`
-  display: grid;
+const StatsDetails = styled(Grid)`
   gap: 24px;
   align-content: start;
 `;

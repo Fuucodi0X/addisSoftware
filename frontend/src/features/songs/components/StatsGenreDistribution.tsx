@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Flex, Grid, Inline, Stack, Text } from "../../../design/primitives";
 import type { SongStatsAdapters } from "../statsAdapters";
 
 interface StatsGenreDistributionProps {
@@ -18,10 +19,14 @@ const segmentColors = [
 export const StatsGenreDistribution = ({ adapters, totalSongs }: StatsGenreDistributionProps) => (
   <Distribution>
     <DistributionHeader>
-      <strong>Songs Classification by Genre</strong>
-      <span>Spectrum Distribution</span>
+      <HeaderLabel as="strong" variant="label" tone="secondary">
+        Songs Classification by Genre
+      </HeaderLabel>
+      <HeaderLabel as="span" variant="label" tone="secondary">
+        Spectrum Distribution
+      </HeaderLabel>
     </DistributionHeader>
-    <StackedBar>
+    <StackedBar role="presentation">
       {adapters.genreEntries.length > 0 ? (
         adapters.genreEntries.map(([genre, count], index) => (
           <StackSegment
@@ -41,7 +46,9 @@ export const StatsGenreDistribution = ({ adapters, totalSongs }: StatsGenreDistr
       {adapters.genreEntries.map(([genre, count], index) => (
         <LegendItem key={genre}>
           <span style={{ background: segmentColors[index % segmentColors.length] }} />
-          <strong>{genre}</strong>
+          <Text as="strong" variant="supporting" tone="secondary">
+            {genre}
+          </Text>
           <em>{count}</em>
         </LegendItem>
       ))}
@@ -49,25 +56,23 @@ export const StatsGenreDistribution = ({ adapters, totalSongs }: StatsGenreDistr
   </Distribution>
 );
 
-const Distribution = styled.div`
-  display: grid;
+const Distribution = styled(Stack)`
   gap: 12px;
 `;
 
-const DistributionHeader = styled.div`
-  display: flex;
+const DistributionHeader = styled(Inline)`
   justify-content: space-between;
   gap: 12px;
-  color: var(--app-text-secondary);
-  font-size: 0.66rem;
-  font-weight: 900;
-  text-transform: uppercase;
 `;
 
-const StackedBar = styled.div`
+const HeaderLabel = styled(Text)`
+  font-size: 0.66rem;
+  font-weight: 900;
+`;
+
+const StackedBar = styled(Flex)`
   min-height: 18px;
   overflow: hidden;
-  display: flex;
   border: 1px solid var(--app-border);
   border-radius: ${({ theme }) => theme.radii.sm}px;
   background: var(--app-panel-subtle);
@@ -77,21 +82,18 @@ const StackSegment = styled.div`
   min-width: 2px;
 `;
 
-const LegendGrid = styled.div`
-  display: grid;
+const LegendGrid = styled(Grid)`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 16px;
 `;
 
-const LegendItem = styled.div`
-  display: grid;
+const LegendItem = styled(Grid)`
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--app-panel-subtle);
   padding-bottom: 6px;
   color: var(--app-text-secondary);
-  font-size: 0.68rem;
   font-weight: 800;
 
   span {
@@ -104,12 +106,11 @@ const LegendItem = styled.div`
     color: var(--app-muted);
     font-style: normal;
     font-family: "JetBrains Mono", monospace;
+    font-size: 0.68rem;
   }
 `;
 
-const EmptyText = styled.p`
-  margin: 0;
-  color: var(--app-muted);
+const EmptyText = styled(Text)`
   font-size: 0.78rem;
   font-weight: 650;
   font-style: italic;

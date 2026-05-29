@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Disc } from "lucide-react";
+import { Box, Heading, Inline } from "../../../design/primitives";
 import type { SongLibraryStats } from "../../../store/songsSlice";
 import type { SongStatsAdapters } from "../statsAdapters";
 
@@ -15,7 +16,9 @@ interface StatsDirectoryProps {
 export const StatsDirectory = ({ activeSubTab, adapters, onSubTabChange, stats }: StatsDirectoryProps) => (
   <>
     <DirectoryHeader>
-      <h3>{activeSubTab === "artists" ? "Artist Inventory Directory" : "Album Volume Directory"}</h3>
+      <DirectoryHeading as="h3" variant="card">
+        {activeSubTab === "artists" ? "Artist Inventory Directory" : "Album Volume Directory"}
+      </DirectoryHeading>
       <TabSwitch>
         <button type="button" onClick={() => onSubTabChange("artists")} data-active={activeSubTab === "artists"}>
           Artists ({stats.artists.length})
@@ -46,7 +49,7 @@ export const StatsDirectory = ({ activeSubTab, adapters, onSubTabChange, stats }
           ? stats.artists.map((artist) => (
               <tr key={artist.artist}>
                 <td>
-                  <MiniAvatar>{artist.artist.charAt(0)}</MiniAvatar>
+                  <MiniAvatar as="span">{artist.artist.charAt(0)}</MiniAvatar>
                   {artist.artist}
                 </td>
                 <td>{artist.albums}</td>
@@ -58,13 +61,13 @@ export const StatsDirectory = ({ activeSubTab, adapters, onSubTabChange, stats }
           : adapters.albumEntries.map(([album, count]) => (
               <tr key={album}>
                 <td>
-                  <AlbumIcon>
+                  <AlbumIcon as="span">
                     <Disc size={14} />
                   </AlbumIcon>
                   {album}
                 </td>
                 <td>
-                  <CountPill>{count} Songs</CountPill>
+                  <CountPill as="span">{count} Songs</CountPill>
                 </td>
               </tr>
             ))}
@@ -73,26 +76,21 @@ export const StatsDirectory = ({ activeSubTab, adapters, onSubTabChange, stats }
   </>
 );
 
-const DirectoryHeader = styled.div`
-  display: flex;
+const DirectoryHeader = styled(Inline)`
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   border-bottom: 1px solid var(--app-border);
   padding-bottom: 12px;
-
-  h3 {
-    margin: 0;
-    color: var(--app-text);
-    font-size: 0.9rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
 `;
 
-const TabSwitch = styled.div`
-  display: flex;
+const DirectoryHeading = styled(Heading)`
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const TabSwitch = styled(Inline)`
   border: 1px solid var(--app-border);
   border-radius: ${({ theme }) => theme.radii.md}px;
   background: var(--app-panel-subtle);
@@ -148,7 +146,7 @@ const DirectoryTable = styled.table`
   }
 `;
 
-const MiniAvatar = styled.span`
+const MiniAvatar = styled(Box)`
   width: 26px;
   height: 26px;
   display: inline-grid;
@@ -162,7 +160,7 @@ const MiniAvatar = styled.span`
   font-weight: 950;
 `;
 
-const AlbumIcon = styled.span`
+const AlbumIcon = styled(Box)`
   width: 26px;
   height: 26px;
   display: inline-grid;
@@ -173,7 +171,7 @@ const AlbumIcon = styled.span`
   color: var(--app-album-icon-text);
 `;
 
-const CountPill = styled.span`
+const CountPill = styled(Inline)`
   display: inline-flex;
   align-items: center;
   justify-content: center;

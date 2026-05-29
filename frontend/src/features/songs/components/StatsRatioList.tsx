@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Activity, BarChart2, Layers } from "lucide-react";
+import { Grid, Stack, Text } from "../../../design/primitives";
 import type { SongStatsAdapters } from "../statsAdapters";
 
 interface StatsRatioListProps {
@@ -10,31 +11,41 @@ export const StatsRatioList = ({ adapters }: StatsRatioListProps) => (
   <RatioList>
     <RatioRow>
       <BarChart2 size={15} />
-      <span>Songs per Artist</span>
-      <strong>{adapters.averageSongsPerArtist}</strong>
+      <Text as="span" variant="supporting" tone="secondary">
+        Songs per Artist
+      </Text>
+      <RatioValue as="strong" variant="code">
+        {adapters.averageSongsPerArtist}
+      </RatioValue>
     </RatioRow>
     <RatioRow>
       <Layers size={15} />
-      <span>Songs per Album</span>
-      <strong>{adapters.averageSongsPerAlbum}</strong>
+      <Text as="span" variant="supporting" tone="secondary">
+        Songs per Album
+      </Text>
+      <RatioValue as="strong" variant="code">
+        {adapters.averageSongsPerAlbum}
+      </RatioValue>
     </RatioRow>
     <RatioRow>
       <Activity size={15} />
-      <span>Albums per Artist</span>
-      <strong>{adapters.averageAlbumsPerArtist}</strong>
+      <Text as="span" variant="supporting" tone="secondary">
+        Albums per Artist
+      </Text>
+      <RatioValue as="strong" variant="code">
+        {adapters.averageAlbumsPerArtist}
+      </RatioValue>
     </RatioRow>
   </RatioList>
 );
 
-const RatioList = styled.div`
-  display: grid;
+const RatioList = styled(Stack)`
   gap: 10px;
   border-top: 1px solid var(--app-border);
   padding-top: 18px;
 `;
 
-const RatioRow = styled.div`
-  display: grid;
+const RatioRow = styled(Grid)`
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
@@ -45,13 +56,11 @@ const RatioRow = styled.div`
   color: var(--app-text-secondary);
   font-size: 0.76rem;
   font-weight: 800;
+`;
 
-  strong {
-    border: 1px solid var(--app-border);
-    border-radius: ${({ theme }) => theme.radii.sm}px;
-    background: var(--app-panel);
-    color: var(--app-text);
-    padding: 3px 8px;
-    font-family: "JetBrains Mono", monospace;
-  }
+const RatioValue = styled(Text)`
+  border: 1px solid var(--app-border);
+  border-radius: ${({ theme }) => theme.radii.sm}px;
+  background: var(--app-panel);
+  padding: 3px 8px;
 `;
