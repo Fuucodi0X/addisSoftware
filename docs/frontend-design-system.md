@@ -10,6 +10,12 @@ The Song Library frontend uses a token-governed design system. Raw visual values
 
 Feature code should not introduce raw hex colors, arbitrary shadow strings, arbitrary breakpoint literals, or one-off radii. Add or extend a semantic token first when a feature needs a new visual value.
 
+## Primitive API
+
+Use `Box`, `Flex`, `Grid`, `Stack`, and `Inline` for simple feature layout. `gap`, `rowGap`, and `columnGap` accept Styled System responsive values and resolve numeric values through `theme.space`, so `gap={6}` uses the shared spacing token rather than a local pixel value.
+
+Use `Text` and `Heading` for common typography. `Text` supports `variant="body" | "supporting" | "caption" | "label" | "code"` and semantic `tone` values such as `primary`, `secondary`, `muted`, `accent`, `success`, `warning`, and `danger`. `Heading` supports `variant="page" | "section" | "subsection" | "card"` with the same tone vocabulary. Keep semantic HTML explicit with Emotion's `as` prop when needed, for example `<Heading as="h1" variant="page">Song Library</Heading>`.
+
 ## Dynamic Runtime Values
 
 Dynamic runtime values may remain dynamic when they are calculated from data or layout state. Examples include progress widths, measured heights, responsive grid counts, and drag positions. Prefer CSS variables when the value is shared between nested elements or reused across multiple CSS properties:
