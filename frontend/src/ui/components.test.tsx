@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import { DesignSystemProvider } from "../design/DesignSystemProvider";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
+import { CountPill } from "./CountPill";
 import { Modal } from "./Modal";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "./Panel";
+import { ErrorState, LoadingState } from "./StatusFeedback";
 import {
   Table,
   TableBody,
@@ -60,6 +62,23 @@ describe("UI components", () => {
     );
 
     expect(screen.getByRole("button", { name: "Delete Song" })).toBeTruthy();
+  });
+
+  it("renders shared feedback and count UI", () => {
+    renderWithTheme(
+      <div>
+        <LoadingState>Loading catalog records...</LoadingState>
+        <ErrorState title="Connection Error" action={<button type="button">Retry</button>}>
+          Network unavailable
+        </ErrorState>
+        <CountPill>12 Songs</CountPill>
+      </div>
+    );
+
+    expect(screen.getByText("Loading catalog records...")).toBeTruthy();
+    expect(screen.getByText("Connection Error")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByText("12 Songs")).toBeTruthy();
   });
 
   it("renders Modal without stale modal class hooks", () => {

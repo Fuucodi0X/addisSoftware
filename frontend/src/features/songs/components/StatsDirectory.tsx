@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Disc } from "lucide-react";
 import { Box, Heading, Inline } from "../../../design/primitives";
 import type { SongLibraryStats } from "../../../store/songsSlice";
+import { CountPill } from "../../../ui/CountPill";
 import type { SongStatsAdapters } from "../statsAdapters";
 
 type StatsDirectoryTab = "artists" | "albums";
@@ -67,7 +68,7 @@ export const StatsDirectory = ({ activeSubTab, adapters, onSubTabChange, stats }
                   {album}
                 </td>
                 <td>
-                  <CountPill as="span">{count} Songs</CountPill>
+                  <CountPill>{count} Songs</CountPill>
                 </td>
               </tr>
             ))}
@@ -169,17 +170,4 @@ const AlbumIcon = styled(Box)`
   border-radius: ${({ theme }) => theme.radii.sm}px;
   background: var(--app-album-icon-background);
   color: var(--app-album-icon-text);
-`;
-
-const CountPill = styled(Inline)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${({ theme }) => theme.radii.full}px;
-  background: var(--app-inverse);
-  color: var(--app-inverse-text);
-  padding: 5px 9px;
-  font-size: 0.64rem;
-  font-weight: 900;
-  white-space: nowrap;
 `;

@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Award } from "lucide-react";
 import { Box, Grid, Inline, Stack, Text } from "../../../design/primitives";
 import type { SongLibraryStats } from "../../../store/songsSlice";
+import { CountPill } from "../../../ui/CountPill";
 
 interface InCatalogArtistsPanelProps {
   artists: SongLibraryStats["artists"];
@@ -133,19 +134,6 @@ const Avatar = styled.div<{ $tone: number }>`
     ["var(--app-avatar-fg-1)", "var(--app-avatar-fg-2)", "var(--app-avatar-fg-3)", "var(--app-avatar-fg-4)"][
       $tone % 4
     ]};
-`;
-
-const CountPill = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${({ theme }) => theme.radii.full}px;
-  background: var(--app-inverse);
-  color: var(--app-inverse-text);
-  padding: 5px 9px;
-  font-size: 0.64rem;
-  font-weight: 900;
-  white-space: nowrap;
 `;
 
 const EmptyText = styled(Text)`
