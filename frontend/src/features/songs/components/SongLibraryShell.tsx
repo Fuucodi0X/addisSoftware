@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import type { ReactNode, Ref } from "react";
-import { Box, Flex } from "../../../design/primitives";
+import { Flex } from "../../../design/primitives";
 
 interface SongLibraryShellProps {
   children: ReactNode;
@@ -11,42 +11,54 @@ interface SongLibraryShellProps {
 }
 
 export const SongLibraryShell = ({ children, floatingAction, footer, scrollRef, sidebar }: SongLibraryShellProps) => (
-  <Shell>
-    <AppFrame id="lunio-app-shell">
+  <Shell alignItems="center" bg="var(--app-panel-subtle)" justifyContent="center" minHeight="100vh" p={8}>
+    <AppFrame
+      id="lunio-app-shell"
+      bg="var(--app-panel)"
+      border="1px solid var(--app-border)"
+      borderRadius="xl"
+      boxShadow="var(--app-shadow-panel)"
+      height="calc(100vh - 48px)"
+      minHeight="760px"
+      overflow="hidden"
+      width="min(1280px, 100%)"
+    >
       {sidebar}
-      <MainPanel id="main-content-panel">
-        <ScrollPanel id="main-scroll-view" ref={scrollRef}>
+      <Flex
+        id="main-content-panel"
+        bg="var(--app-surface)"
+        flex={1}
+        flexDirection="column"
+        minWidth={0}
+        overflow="hidden"
+        position="relative"
+      >
+        <ScrollPanel
+          id="main-scroll-view"
+          ref={scrollRef}
+          flex={1}
+          flexDirection="column"
+          minWidth={0}
+          overflowX="hidden"
+          overflowY="auto"
+          p={9}
+        >
           {children}
         </ScrollPanel>
         {footer}
         {floatingAction}
-      </MainPanel>
+      </Flex>
     </AppFrame>
   </Shell>
 );
 
 const Shell = styled(Flex)`
-  min-height: 100vh;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--app-panel-subtle);
-
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
     padding: 0;
   }
 `;
 
 const AppFrame = styled(Flex)`
-  width: min(1280px, 100%);
-  height: calc(100vh - 48px);
-  min-height: 760px;
-  overflow: hidden;
-  border: 1px solid var(--app-border);
-  border-radius: ${({ theme }) => theme.radii.xl}px;
-  background: var(--app-panel);
-  box-shadow: var(--app-shadow-panel);
-
   @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     height: 100vh;
     min-height: 100vh;
@@ -55,22 +67,7 @@ const AppFrame = styled(Flex)`
   }
 `;
 
-const MainPanel = styled(Flex)`
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  position: relative;
-  background: var(--app-surface);
-  overflow: hidden;
-`;
-
-const ScrollPanel = styled(Box)`
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 32px;
-
+const ScrollPanel = styled(Flex)`
   @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     padding: 16px;
   }
