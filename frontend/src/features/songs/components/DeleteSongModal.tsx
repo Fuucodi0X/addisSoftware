@@ -4,6 +4,7 @@ import type { Song } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
 import { FormFeedback } from "../../../ui/Form";
 import { Modal } from "../../../ui/Modal";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 
 interface DeleteSongModalProps {
   error: string | null;
@@ -87,7 +88,7 @@ const DeletePreview = styled.div(({ theme }) => ({
   padding: theme.space[4]
 }));
 
-const DeleteArtwork = styled.img(({ theme }) => ({
+const DeleteArtwork = styled(CachedArtworkImage)(({ theme }) => ({
   aspectRatio: "1 / 1",
   background: theme.colors.surface.panel,
   borderRadius: theme.radii.sm,

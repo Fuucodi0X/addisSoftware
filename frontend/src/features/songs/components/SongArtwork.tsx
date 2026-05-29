@@ -1,5 +1,6 @@
 import { useTheme } from "@emotion/react";
 import type { Song } from "../../../store/songsSlice";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 import { getSongArtworkMeta } from "./songArtwork";
 
 interface SongArtworkProps {
@@ -12,7 +13,7 @@ export const SongArtwork = ({ song, className = "song-artwork" }: SongArtworkPro
   const placeholder = getSongArtworkMeta(song, theme.colors.avatar.placeholderPalettes);
 
   if (song.artworkUrl) {
-    return <img className={className} src={song.artworkUrl} alt={`${song.album} artwork`} />;
+    return <CachedArtworkImage className={className} src={song.artworkUrl} alt={`${song.album} artwork`} />;
   }
 
   return (

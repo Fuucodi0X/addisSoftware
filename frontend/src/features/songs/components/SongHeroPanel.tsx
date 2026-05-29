@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Play } from "lucide-react";
 import { Box, Heading, Inline, Stack, Text } from "../../../design/primitives";
 import type { Song } from "../../../store/songsSlice";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 
 interface SongHeroPanelProps {
   activeSong: Song | null;
@@ -105,7 +106,7 @@ const HeroDescription = styled(Text)`
   font-weight: 750;
 `;
 
-const HeroImage = styled.img`
+const HeroImage = styled(CachedArtworkImage)`
   position: absolute;
   inset: 0 0 0 auto;
   width: 46%;

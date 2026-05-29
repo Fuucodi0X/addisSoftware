@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { Heart, Pause, Play, RefreshCw, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import type { Song } from "../../../store/songsSlice";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -139,7 +140,7 @@ export const FocusedSongFooter = ({
   </FocusedFooter>
 );
 
-const Artwork = styled.img`
+const Artwork = styled(CachedArtworkImage)`
   width: 42px;
   height: 42px;
   flex-shrink: 0;

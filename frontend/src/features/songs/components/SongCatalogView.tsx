@@ -4,6 +4,7 @@ import { useState, type FocusEvent, type WheelEvent } from "react";
 import { Box, Flex, Grid, Heading, Inline, Stack, Text } from "../../../design/primitives";
 import type { Song } from "../../../store/songsSlice";
 import { Button } from "../../../ui/Button";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 
 type SongLoadStatus = "idle" | "loading" | "succeeded" | "failed";
 const limitOptions = [5, 8, 15, 25, 50];
@@ -699,7 +700,7 @@ const Equalizer = styled.span(({ theme }) => ({
   }
 }));
 
-const Artwork = styled.img(({ theme }) => ({
+const Artwork = styled(CachedArtworkImage)(({ theme }) => ({
   background: theme.colors.surface.panelSubtle,
   border: `1px solid ${theme.colors.border.default}`,
   borderRadius: theme.radii.md,

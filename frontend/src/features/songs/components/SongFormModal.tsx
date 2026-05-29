@@ -6,6 +6,7 @@ import { Button } from "../../../ui/Button";
 import { Field, FormFeedback, Input } from "../../../ui/Form";
 import { Modal } from "../../../ui/Modal";
 import type { SongFormValues } from "../songMutationForm";
+import { CachedArtworkImage } from "./CachedArtworkImage";
 
 interface SongFormModalProps {
   actionLabel: string;
@@ -71,7 +72,7 @@ export const SongFormModal = ({
                   disabled={isMutating}
                   aria-label={`Use artwork preset ${index + 1}`}
                 >
-                  <img src={preset} alt="" referrerPolicy="no-referrer" />
+                  <CachedArtworkImage src={preset} alt="" referrerPolicy="no-referrer" />
                   {values.artworkUrl === preset ? <Check size={12} aria-hidden="true" /> : null}
                 </PresetButton>
               ))}
@@ -211,7 +212,7 @@ const ArtworkControl = styled.div(({ theme }) => ({
   }
 }));
 
-const ArtworkPreview = styled.img(({ theme }) => ({
+const ArtworkPreview = styled(CachedArtworkImage)(({ theme }) => ({
   aspectRatio: "1 / 1",
   background: theme.colors.surface.panelSubtle,
   borderRadius: theme.radii.sm,
