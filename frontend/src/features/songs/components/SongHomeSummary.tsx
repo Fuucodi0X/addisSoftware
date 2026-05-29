@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Grid } from "../../../design/primitives";
 import type { Song, SongLibraryStats } from "../../../store/songsSlice";
 import { InCatalogArtistsPanel } from "./InCatalogArtistsPanel";
 import { SongHeroPanel } from "./SongHeroPanel";
@@ -11,17 +12,13 @@ interface SongHomeSummaryProps {
 }
 
 export const SongHomeSummary = ({ activeSong, artists, onSelectFeaturedSong, onShowStats }: SongHomeSummaryProps) => (
-  <TopGrid>
+  <TopGrid gridTemplateColumns="minmax(0, 7fr) minmax(320px, 5fr)" gap={8}>
     <SongHeroPanel activeSong={activeSong} onSelectFeaturedSong={onSelectFeaturedSong} />
     <InCatalogArtistsPanel artists={artists} onShowStats={onShowStats} />
   </TopGrid>
 );
 
-const TopGrid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
-  gap: 24px;
-
+const TopGrid = styled(Grid)`
   @media (max-width: ${({ theme }) => theme.breakpoints[2]}) {
     grid-template-columns: 1fr;
   }

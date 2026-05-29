@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Play } from "lucide-react";
+import { Box, Heading, Inline, Stack, Text } from "../../../design/primitives";
 import type { Song } from "../../../store/songsSlice";
 
 interface SongHeroPanelProps {
@@ -8,14 +9,28 @@ interface SongHeroPanelProps {
 }
 
 export const SongHeroPanel = ({ activeSong, onSelectFeaturedSong }: SongHeroPanelProps) => (
-  <HeroCard>
-    <Kicker>
+  <HeroCard
+    as="section"
+    justifyContent="space-between"
+    borderRadius="xl"
+    boxShadow="var(--app-shadow-raised)"
+    minHeight="240px"
+    minWidth={0}
+    overflow="hidden"
+    p={9}
+    position="relative"
+  >
+    <Kicker gap={4}>
       <span />
       Curated Song Library
     </Kicker>
     <HeroCopy>
-      <h1>Song Library</h1>
-      <p>Your premium interface for managing Song metadata, catalogue statistics, artwork, and duration records.</p>
+      <HeroTitle as="h1" variant="page">
+        Song Library
+      </HeroTitle>
+      <HeroDescription variant="supporting">
+        Your premium interface for managing Song metadata, catalogue statistics, artwork, and duration records.
+      </HeroDescription>
     </HeroCopy>
     <HeroActions>
       <PrimaryAction type="button" onClick={() => activeSong && onSelectFeaturedSong(activeSong)}>
@@ -30,19 +45,9 @@ export const SongHeroPanel = ({ activeSong, onSelectFeaturedSong }: SongHeroPane
   </HeroCard>
 );
 
-const HeroCard = styled.section`
-  min-height: 240px;
-  min-width: 0;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border-radius: ${({ theme }) => theme.radii.xl}px;
-  padding: 28px;
+const HeroCard = styled(Stack)`
   color: var(--app-on-brand);
   background: var(--app-hero-background);
-  box-shadow: var(--app-shadow-raised);
 
   &::after {
     content: "";
@@ -58,21 +63,14 @@ const HeroCard = styled.section`
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
-    min-height: 240px;
-    border-radius: ${({ theme }) => theme.radii.xl}px;
-    padding: 28px;
-
     &::after {
       background: var(--app-hero-overlay-compact);
     }
   }
 `;
 
-const Kicker = styled.div`
+const Kicker = styled(Inline)`
   width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   padding: 6px 12px;
   border-radius: ${({ theme }) => theme.radii.full}px;
   background: var(--app-hero-kicker);
@@ -89,24 +87,22 @@ const Kicker = styled.div`
   }
 `;
 
-const HeroCopy = styled.div`
+const HeroCopy = styled(Box)`
   max-width: 360px;
+`;
 
-  h1 {
-    margin: 0 0 8px;
-    font-size: clamp(1.85rem, 3vw, 2.55rem);
-    line-height: 1;
-    font-weight: 950;
-    letter-spacing: 0;
-  }
+const HeroTitle = styled(Heading)`
+  margin-bottom: ${({ theme }) => theme.space[4]}px;
+  color: var(--app-on-brand);
+  font-size: clamp(1.85rem, 3vw, 2.55rem);
+  line-height: 1;
+`;
 
-  p {
-    margin: 0;
-    color: var(--app-hero-copy);
-    font-size: 0.78rem;
-    line-height: 1.7;
-    font-weight: 750;
-  }
+const HeroDescription = styled(Text)`
+  color: var(--app-hero-copy);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  font-weight: 750;
 `;
 
 const HeroImage = styled.img`
@@ -124,10 +120,7 @@ const HeroImage = styled.img`
   }
 `;
 
-const HeroActions = styled.div`
-  display: flex;
-  gap: 12px;
-`;
+const HeroActions = styled(Inline)``;
 
 const BaseAction = styled.button`
   min-height: 36px;

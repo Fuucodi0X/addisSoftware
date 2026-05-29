@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Award } from "lucide-react";
+import { Box, Grid, Inline, Stack, Text } from "../../../design/primitives";
 import type { SongLibraryStats } from "../../../store/songsSlice";
 
 interface InCatalogArtistsPanelProps {
@@ -8,9 +9,9 @@ interface InCatalogArtistsPanelProps {
 }
 
 export const InCatalogArtistsPanel = ({ artists, onShowStats }: InCatalogArtistsPanelProps) => (
-  <ArtistPanel>
-    <PanelHeader>
-      <PanelTitle>
+  <ArtistPanel as="section" borderRadius="xl" boxShadow="var(--app-shadow-soft)" minHeight="240px" minWidth={0} p={7}>
+    <PanelHeader alignItems="center" justifyContent="space-between" gap={5} mb={6}>
+      <PanelTitle as="h2" variant="label">
         <Award size={16} />
         In-Catalog Artists
       </PanelTitle>
@@ -18,51 +19,41 @@ export const InCatalogArtistsPanel = ({ artists, onShowStats }: InCatalogArtists
         See More Analytics &gt;
       </TextButton>
     </PanelHeader>
-    <ArtistList>
+    <ArtistList gap={5}>
       {artists.length > 0 ? (
         artists.slice(0, 4).map((artist, index) => (
-          <ArtistRow key={artist.artist}>
+          <ArtistRow key={artist.artist} gap={5} p={4}>
             <Avatar $tone={index}>{artist.artist.charAt(0).toUpperCase()}</Avatar>
-            <div>
-              <strong>{artist.artist}</strong>
-              <span>
+            <Box minWidth={0}>
+              <ArtistName>{artist.artist}</ArtistName>
+              <ArtistMeta as="span" variant="caption" tone="muted">
                 {artist.albums} album record{artist.albums === 1 ? "" : "s"}
-              </span>
-            </div>
+              </ArtistMeta>
+            </Box>
             <CountPill>
               {artist.songs} Song{artist.songs === 1 ? "" : "s"}
             </CountPill>
           </ArtistRow>
         ))
       ) : (
-        <EmptyText>No artists index populated yet.</EmptyText>
+        <EmptyText tone="muted" variant="supporting">
+          No artists index populated yet.
+        </EmptyText>
       )}
     </ArtistList>
   </ArtistPanel>
 );
 
-const ArtistPanel = styled.section`
-  min-width: 0;
-  min-height: 240px;
+const ArtistPanel = styled(Stack)`
   border: 1px solid var(--app-border);
-  border-radius: ${({ theme }) => theme.radii.xl}px;
   background: var(--app-panel);
-  padding: 22px;
-  box-shadow: var(--app-shadow-soft);
 
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
-    border-radius: ${({ theme }) => theme.radii.xl}px;
     padding: 20px;
   }
 `;
 
-const PanelHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-
+const PanelHeader = styled(Inline)`
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
     align-items: flex-start;
     flex-direction: column;
@@ -70,14 +61,11 @@ const PanelHeader = styled.div`
   }
 `;
 
-const PanelTitle = styled.div`
-  display: flex;
+const PanelTitle = styled(Text)`
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: ${({ theme }) => theme.space[4]}px;
   color: var(--app-text);
-  font-size: 0.72rem;
-  font-weight: 950;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
 
   svg {
@@ -98,32 +86,13 @@ const TextButton = styled.button`
   }
 `;
 
-const ArtistList = styled.div`
-  display: grid;
-  gap: 10px;
-`;
+const ArtistList = styled(Grid)``;
 
-const ArtistRow = styled.div`
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+const ArtistRow = styled(Grid)`
   align-items: center;
-  gap: 12px;
-  padding: 9px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   border: 1px solid var(--app-panel-subtle);
   border-radius: ${({ theme }) => theme.radii.md}px;
-
-  strong {
-    display: block;
-    color: var(--app-inverse);
-    font-size: 0.78rem;
-  }
-
-  span {
-    color: var(--app-muted);
-    font-size: 0.65rem;
-    font-weight: 700;
-  }
 
   @media (max-width: ${({ theme }) => theme.breakpoints[0]}) {
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -134,6 +103,18 @@ const ArtistRow = styled.div`
       justify-self: end;
     }
   }
+`;
+
+const ArtistName = styled(Text)`
+  display: block;
+  color: var(--app-inverse);
+  font-size: 0.78rem;
+  font-weight: 850;
+`;
+
+const ArtistMeta = styled(Text)`
+  font-size: 0.65rem;
+  font-weight: 700;
 `;
 
 const Avatar = styled.div<{ $tone: number }>`
@@ -167,9 +148,7 @@ const CountPill = styled.span`
   white-space: nowrap;
 `;
 
-const EmptyText = styled.p`
-  margin: 0;
-  color: var(--app-muted);
+const EmptyText = styled(Text)`
   font-size: 0.78rem;
   font-weight: 650;
   font-style: italic;
